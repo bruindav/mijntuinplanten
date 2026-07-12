@@ -752,7 +752,7 @@
       const form = new FormData();
       form.append("images", blob, "photo.jpg");
       form.append("organs", "auto");
-      const res = await fetch(`https://my-api.plantnet.org/v2/identify/all?api-key=${encodeURIComponent(key)}`, {
+      const res = await fetch(`https://my-api.plantnet.org/v2/identify/all?lang=nl&api-key=${encodeURIComponent(key)}`, {
         method: "POST", body: form
       });
       if (!res.ok) throw new Error("Pl@ntNet gaf een fout (" + res.status + ")");
