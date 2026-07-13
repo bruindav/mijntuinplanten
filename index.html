@@ -101,6 +101,38 @@
     padding:8px 10px;font-size:0.82rem;font-weight:600;color:var(--soil);cursor:pointer;
   }
   .zone-tab.active{background:var(--moss);color:var(--paper);}
+
+  .dims-form{
+    display:flex;align-items:flex-end;gap:8px;margin-bottom:10px;flex-wrap:wrap;
+    background:white;border:1px solid var(--line);border-radius:10px;padding:10px 12px;
+  }
+  .dims-form .field{margin-bottom:0;flex:1;min-width:70px;}
+  .dims-form .field label{font-size:0.7rem;margin-bottom:2px;}
+  .dims-form .field input{padding:7px 8px;font-size:0.85rem;}
+  .dims-form .hint{width:100%;font-size:0.72rem;color:#8a8a78;order:5;margin-top:2px;}
+
+  .draw-toolbar{
+    display:flex;gap:6px;margin-bottom:10px;flex-wrap:wrap;align-items:center;
+  }
+  .mode-btn{
+    background:white;border:1px solid var(--line);color:var(--soil);
+    padding:7px 12px;border-radius:8px;font-size:0.8rem;font-weight:600;
+  }
+  .mode-btn.active{background:var(--leaf);border-color:var(--leaf);color:white;}
+  .draw-hint{
+    font-size:0.76rem;color:var(--moss);background:#F3F6F1;border:1px dashed var(--leaf);
+    border-radius:8px;padding:6px 10px;margin-bottom:10px;display:none;
+  }
+  .draw-hint.show{display:block;}
+  .draw-hint button{margin-left:8px;padding:3px 9px;font-size:0.72rem;}
+
+  #shapesSvg{position:absolute;inset:0;width:100%;height:100%;}
+  .shape-terras{fill:#C9BBA0;fill-opacity:0.85;stroke:#8a7a60;stroke-width:0.4;cursor:pointer;}
+  .shape-border{fill:var(--leaf);fill-opacity:0.35;stroke:var(--moss);stroke-width:0.4;stroke-dasharray:1.2,0.8;cursor:pointer;}
+  .shape-pad{fill:none;stroke:#B7AE9C;stroke-linecap:round;stroke-linejoin:round;cursor:pointer;}
+  .shape-pad-outline{fill:none;stroke:#8a7a60;stroke-linecap:round;stroke-linejoin:round;}
+  .grid-line{stroke:#00000012;stroke-width:0.15;}
+  .draw-preview{fill:none;stroke:var(--ochre);stroke-width:0.4;stroke-dasharray:1,1;}
   #mapWrap{
     position:relative;
     border:1px solid var(--line);
@@ -114,13 +146,14 @@
     background-size:20px 20px;
     background-position:0 0, 0 10px, 10px -10px, -10px 0px;
     aspect-ratio:4/3;
+    max-height:70vh;
     cursor:crosshair;
   }
-  #mapImg{width:100%;height:100%;object-fit:contain;display:block;pointer-events:none;user-select:none;}
+  #mapImg{width:100%;height:100%;object-fit:contain;display:block;pointer-events:none;user-select:none;opacity:0.45;}
   #mapEmpty{
     position:absolute;inset:0;display:flex;flex-direction:column;
     align-items:center;justify-content:center;gap:10px;color:#8a8a78;
-    text-align:center;padding:20px;
+    text-align:center;padding:20px;pointer-events:none;
   }
   .pin{
     position:absolute;transform:translate(-50%,-100%);
@@ -268,22 +301,45 @@
     <section class="map-panel">
       <div class="map-toolbar">
         <h2 class="display">Plattegrond</h2>
-        <div style="display:flex;gap:8px;">
-          <button class="btn-outline" id="uploadMapBtn">Plattegrond uploaden</button>
-          <input type="file" id="mapFileInput" accept="image/*" style="display:none;">
-        </div>
       </div>
       <div class="zone-tabs">
         <button class="zone-tab active" id="tabVoortuin" data-zone="voortuin">Voortuin</button>
         <button class="zone-tab" id="tabAchtertuin" data-zone="achtertuin">Achtertuin</button>
       </div>
+
+      <div class="dims-form">
+        <div class="field">
+          <label>Breedte (m)</label>
+          <input type="number" id="dimWidth" min="0.5" step="0.1">
+        </div>
+        <div class="field">
+          <label>Diepte (m)</label>
+          <input type="number" id="dimDepth" min="0.5" step="0.1">
+        </div>
+        <button class="btn-outline" id="saveDimsBtn">Afmetingen opslaan</button>
+        <div class="hint">Vul de echte maten van je <span id="dimZoneLabel">voortuin</span> in — de plattegrond schaalt daarop mee.</div>
+      </div>
+
+      <div class="draw-toolbar">
+        <button class="mode-btn active" data-mode="plant" id="modePlant">🌱 Plant</button>
+        <button class="mode-btn" data-mode="terras" id="modeTerras">◻ Terras</button>
+        <button class="mode-btn" data-mode="border" id="modeBorder">〰 Border</button>
+        <button class="mode-btn" data-mode="pad" id="modePad">〜 Pad</button>
+      </div>
+      <div class="draw-hint" id="drawHint"></div>
+
       <div id="mapWrap">
         <img id="mapImg" style="display:none;">
+        <svg id="shapesSvg" viewBox="0 0 100 100" preserveAspectRatio="none"></svg>
         <div id="mapEmpty">
           <span>🌿</span>
-          <span>Upload eerst een foto of tekening van je tuin, klik daarna erop om een plant te plaatsen.</span>
+          <span>Vul de afmetingen in, klik dan op de plattegrond om een plant, terras, border of pad te plaatsen.</span>
         </div>
       </div>
+      <p style="font-size:0.72rem;color:#8a8a78;margin-top:6px;">
+        Optioneel: <button class="btn-outline" id="uploadMapBtn" style="padding:4px 10px;font-size:0.72rem;">foto als achtergrond (referentie)</button>
+        <input type="file" id="mapFileInput" accept="image/*" style="display:none;">
+      </p>
 
       <div class="wheel-card">
         <h3>Maandwiel</h3>
@@ -315,7 +371,13 @@
     <h2 class="display" id="plantModalTitle">Nieuwe plant</h2>
 
     <div class="identify-box">
-      <div style="font-size:0.78rem;font-weight:600;color:var(--soil);margin-bottom:6px;">Herkennen met Pl@ntNet</div>
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;flex-wrap:wrap;gap:6px;">
+        <div style="font-size:0.78rem;font-weight:600;color:var(--soil);">Herkennen</div>
+        <select id="idSource" style="font-size:0.78rem;padding:4px 6px;border:1px solid var(--line);border-radius:6px;background:white;">
+          <option value="plantnet">Pl@ntNet</option>
+          <option value="obsidentify">ObsIdentify (Naturalis)</option>
+        </select>
+      </div>
       <div class="row">
         <img id="idPreview">
         <input type="file" id="idPhotoInput" accept="image/*">
@@ -428,14 +490,121 @@
   let currentLat = null, currentLng = null; // pin position (percentages 0-100)
   let selectedMonth = null; // 0-11 or null
   let currentZone = "voortuin"; // "voortuin" | "achtertuin"
-  let gardenData = {}; // last snapshot of the garden doc (holds both map images)
+  let gardenData = {}; // last snapshot of the garden doc
+  let drawMode = "plant"; // "plant" | "terras" | "border" | "pad"
+  let pendingRectCorner = null; // {x,y} in % while placing a terras/border
+  let pendingPadPoints = [];    // [{x,y}, ...] in % while placing a pad
+  const PAD_WIDTH_M = 0.8; // real-world path width used to scale the drawn stroke
+
+  const DEFAULT_DIMS = {
+    voortuin:   { w: 5.5, d: 3   },
+    achtertuin: { w: 5.5, d: 12  },
+  };
+
+  function currentDims() {
+    const wKey = currentZone === "voortuin" ? "dimVoortuinW" : "dimAchtertuinW";
+    const dKey = currentZone === "voortuin" ? "dimVoortuinD" : "dimAchtertuinD";
+    return {
+      w: gardenData[wKey] || DEFAULT_DIMS[currentZone].w,
+      d: gardenData[dKey] || DEFAULT_DIMS[currentZone].d,
+    };
+  }
+
+  function applyAspectRatio() {
+    const { w, d } = currentDims();
+    document.getElementById("mapWrap").style.aspectRatio = `${w} / ${d}`;
+    document.getElementById("dimWidth").value = w;
+    document.getElementById("dimDepth").value = d;
+    document.getElementById("dimZoneLabel").textContent = currentZone;
+  }
+
+  document.getElementById("saveDimsBtn").onclick = async () => {
+    const w = parseFloat(document.getElementById("dimWidth").value);
+    const d = parseFloat(document.getElementById("dimDepth").value);
+    if (!w || !d || w <= 0 || d <= 0) { toast("Vul een geldige breedte en diepte in"); return; }
+    const wKey = currentZone === "voortuin" ? "dimVoortuinW" : "dimAchtertuinW";
+    const dKey = currentZone === "voortuin" ? "dimVoortuinD" : "dimAchtertuinD";
+    await setDoc(gardenDocRef, { [wKey]: w, [dKey]: d }, { merge: true });
+    toast("Afmetingen opgeslagen");
+  };
+
+  // ---------- Draw mode toolbar ----------
+  const DRAW_HINTS = {
+    plant: "",
+    terras: "Tik twee hoekpunten van het terras aan.",
+    border: "Tik twee hoekpunten van de border aan.",
+    pad: "Tik de punten van het pad aan, sluit af met \u2018Pad klaar\u2019.",
+  };
+  function setDrawMode(mode) {
+    drawMode = mode;
+    pendingRectCorner = null;
+    pendingPadPoints = [];
+    document.querySelectorAll(".mode-btn").forEach(b => b.classList.toggle("active", b.dataset.mode === mode));
+    updateDrawHint();
+    renderShapes();
+  }
+  function updateDrawHint() {
+    const hint = document.getElementById("drawHint");
+    let text = DRAW_HINTS[drawMode];
+    if (drawMode === "pad" && pendingPadPoints.length) {
+      text += ` (${pendingPadPoints.length} punt${pendingPadPoints.length === 1 ? "" : "en"})`;
+    }
+    if (!text) { hint.classList.remove("show"); hint.innerHTML = ""; return; }
+    hint.classList.add("show");
+    hint.innerHTML = escapeHtml(text);
+    if (drawMode === "pad" && pendingPadPoints.length >= 2) {
+      const btn = document.createElement("button");
+      btn.className = "btn-primary";
+      btn.textContent = "Pad klaar";
+      btn.onclick = (e) => { e.stopPropagation(); finishPad(); };
+      hint.appendChild(btn);
+    }
+    if ((drawMode === "pad" && pendingPadPoints.length) || (drawMode !== "plant" && pendingRectCorner)) {
+      const cancelBtn = document.createElement("button");
+      cancelBtn.className = "btn-outline";
+      cancelBtn.textContent = "Annuleer";
+      cancelBtn.onclick = (e) => { e.stopPropagation(); pendingRectCorner = null; pendingPadPoints = []; updateDrawHint(); renderShapes(); };
+      hint.appendChild(cancelBtn);
+    }
+  }
+  document.querySelectorAll(".mode-btn").forEach(btn => {
+    btn.onclick = () => setDrawMode(btn.dataset.mode);
+  });
+
+  function zoneShapesKey() {
+    return currentZone === "voortuin" ? "shapesVoortuin" : "shapesAchtertuin";
+  }
+  function currentShapes() {
+    return gardenData[zoneShapesKey()] || [];
+  }
+  async function saveShapes(shapes) {
+    await setDoc(gardenDocRef, { [zoneShapesKey()]: shapes }, { merge: true });
+  }
+  async function addShape(shape) {
+    const shapes = currentShapes().concat([{ ...shape, id: "s" + Date.now() }]);
+    await saveShapes(shapes);
+  }
+  async function deleteShape(id) {
+    const shapes = currentShapes().filter(s => s.id !== id);
+    await saveShapes(shapes);
+  }
+  async function finishPad() {
+    if (pendingPadPoints.length < 2) return;
+    await addShape({ type: "pad", points: pendingPadPoints });
+    pendingPadPoints = [];
+    updateDrawHint();
+    renderShapes();
+  }
 
   document.querySelectorAll(".zone-tab").forEach(btn => {
     btn.onclick = () => {
       currentZone = btn.dataset.zone;
       document.querySelectorAll(".zone-tab").forEach(b => b.classList.toggle("active", b === btn));
+      setDrawMode("plant");
+      applyAspectRatio();
       renderMapImage();
       renderPins();
+      renderShapes();
     };
   });
 
@@ -497,8 +666,10 @@
   function listenGardenMap() {
     onSnapshot(gardenDocRef, snap => {
       gardenData = snap.data() || {};
+      applyAspectRatio();
       renderMapImage();
       renderPins();
+      renderShapes();
     });
   }
 
@@ -509,24 +680,105 @@
     if (gardenData && gardenData[field]) {
       img.src = gardenData[field];
       img.style.display = "block";
-      empty.style.display = "none";
     } else {
       img.style.display = "none";
-      empty.style.display = "flex";
-      empty.querySelector("span:last-child").textContent =
-        `Upload eerst een plattegrond voor de ${currentZone}, klik daarna erop om een plant te plaatsen.`;
     }
+    const hasContent = (gardenData[field]) || currentShapes().length ||
+      plants.some(p => (p.zone || "achtertuin") === currentZone);
+    empty.style.display = hasContent ? "none" : "flex";
   }
 
   document.getElementById("mapWrap").addEventListener("click", (e) => {
-    const img = document.getElementById("mapImg");
-    if (img.style.display === "none") { toast("Upload eerst een plattegrond"); return; }
-    if (e.target.closest(".pin")) return; // clicking an existing pin handled separately
+    if (e.target.closest(".pin")) return; // existing pin click handled separately
+    if (e.target.closest(".shape-terras, .shape-border, .shape-pad-outline")) return; // shape click handled separately
     const rect = document.getElementById("mapWrap").getBoundingClientRect();
     const x = ((e.clientX - rect.left) / rect.width) * 100;
     const y = ((e.clientY - rect.top) / rect.height) * 100;
-    openPlantModal(null, x, y);
+
+    if (drawMode === "plant") {
+      openPlantModal(null, x, y);
+    } else if (drawMode === "terras" || drawMode === "border") {
+      if (!pendingRectCorner) {
+        pendingRectCorner = { x, y };
+        updateDrawHint();
+        renderShapes();
+      } else {
+        const rx = Math.min(pendingRectCorner.x, x), ry = Math.min(pendingRectCorner.y, y);
+        const rw = Math.abs(x - pendingRectCorner.x), rh = Math.abs(y - pendingRectCorner.y);
+        pendingRectCorner = null;
+        if (rw > 0.5 && rh > 0.5) {
+          addShape({ type: drawMode, x: rx, y: ry, w: rw, h: rh });
+        }
+        updateDrawHint();
+        renderShapes();
+      }
+    } else if (drawMode === "pad") {
+      pendingPadPoints.push({ x, y });
+      updateDrawHint();
+      renderShapes();
+    }
   });
+
+  // ---------- Shapes (terras / border / pad) ----------
+  const SVG_NS = "http://www.w3.org/2000/svg";
+  function svgEl(tag, attrs) {
+    const el = document.createElementNS(SVG_NS, tag);
+    for (const k in attrs) el.setAttribute(k, attrs[k]);
+    return el;
+  }
+  function renderShapes() {
+    const svg = document.getElementById("shapesSvg");
+    svg.innerHTML = "";
+    if (document.getElementById("mapEmpty").style.display !== "none" && !gardenData[zoneShapesKey()]) {
+      // still draw grid even if empty, so the scale is visible once dims are set
+    }
+    const { w: widthM, d: depthM } = currentDims();
+
+    // grid every 1m
+    for (let gx = 1; gx < widthM; gx++) {
+      const px = (gx / widthM) * 100;
+      svg.appendChild(svgEl("line", { x1: px, y1: 0, x2: px, y2: 100, class: "grid-line" }));
+    }
+    for (let gy = 1; gy < depthM; gy++) {
+      const py = (gy / depthM) * 100;
+      svg.appendChild(svgEl("line", { x1: 0, y1: py, x2: 100, y2: py, class: "grid-line" }));
+    }
+
+    const padStrokePct = (PAD_WIDTH_M / widthM) * 100;
+
+    currentShapes().forEach(s => {
+      if (s.type === "terras" || s.type === "border") {
+        const r = svgEl("rect", {
+          x: s.x, y: s.y, width: s.w, height: s.h,
+          class: s.type === "terras" ? "shape-terras" : "shape-border",
+        });
+        r.addEventListener("click", (e) => { e.stopPropagation(); confirmDeleteShape(s); });
+        svg.appendChild(r);
+      } else if (s.type === "pad") {
+        const pts = s.points.map(p => `${p.x},${p.y}`).join(" ");
+        const outline = svgEl("polyline", { points: pts, class: "shape-pad-outline", "stroke-width": padStrokePct + 1 });
+        const line = svgEl("polyline", { points: pts, class: "shape-pad", "stroke-width": padStrokePct });
+        outline.addEventListener("click", (e) => { e.stopPropagation(); confirmDeleteShape(s); });
+        svg.appendChild(outline);
+        svg.appendChild(line);
+      }
+    });
+
+    // live preview while drawing
+    if (pendingRectCorner) {
+      // preview follows next click, nothing to draw until second point — show marker at first corner
+      svg.appendChild(svgEl("circle", { cx: pendingRectCorner.x, cy: pendingRectCorner.y, r: 1, fill: "var(--ochre)" }));
+    }
+    if (pendingPadPoints.length) {
+      const pts = pendingPadPoints.map(p => `${p.x},${p.y}`).join(" ");
+      svg.appendChild(svgEl("polyline", { points: pts, class: "draw-preview" }));
+      pendingPadPoints.forEach(p => svg.appendChild(svgEl("circle", { cx: p.x, cy: p.y, r: 0.8, fill: "var(--ochre)" })));
+    }
+  }
+  function confirmDeleteShape(s) {
+    const label = s.type === "terras" ? "terras" : s.type === "border" ? "border" : "pad";
+    if (confirm(`Deze ${label} verwijderen?`)) deleteShape(s.id);
+  }
 
   // ---------- Month wheel ----------
   const wheel = document.getElementById("wheel");
@@ -562,6 +814,8 @@
   fillMonthSelect(document.getElementById("bloomStart"));
   fillMonthSelect(document.getElementById("bloomEnd"));
   fillMonthSelect(document.getElementById("pruneMonths"));
+  applyAspectRatio();
+  updateDrawHint();
 
   // ---------- Plants: Firestore live sync ----------
   function listenPlants() {
@@ -594,8 +848,11 @@
         if (zone !== currentZone) {
           currentZone = zone;
           document.querySelectorAll(".zone-tab").forEach(b => b.classList.toggle("active", b.dataset.zone === zone));
+          setDrawMode("plant");
+          applyAspectRatio();
           renderMapImage();
           renderPins();
+          renderShapes();
         }
         openPlantModal(p);
       };
@@ -607,7 +864,6 @@
   function renderPins() {
     document.querySelectorAll(".pin").forEach(p => p.remove());
     const wrap = document.getElementById("mapWrap");
-    if (document.getElementById("mapImg").style.display === "none") return;
     plants.filter(p => (p.zone || "achtertuin") === currentZone).forEach(p => {
       if (p.x == null || p.y == null) return;
       const pin = document.createElement("div");
@@ -677,7 +933,7 @@
   document.getElementById("closePlantModal").onclick = () => document.getElementById("plantModalBackdrop").classList.remove("active");
   document.getElementById("cancelPlantBtn").onclick = () => document.getElementById("plantModalBackdrop").classList.remove("active");
   document.getElementById("addPlantBtn").onclick = () => {
-    if (document.getElementById("mapImg").style.display === "none") { toast("Upload eerst een plattegrond, klik er dan op"); return; }
+    setDrawMode("plant");
     toast("Klik op de plattegrond om de plek te kiezen");
   };
 
@@ -740,43 +996,94 @@
     preview.style.display = "block";
   };
 
-  document.getElementById("identifyBtn").onclick = async () => {
+  function adoptSuggestion(latin, common) {
+    document.getElementById("plantLatin").value = latin;
+    document.getElementById("plantName").value = common || latin;
+    if (!document.getElementById("plantPhotoPreview").src || document.getElementById("plantPhotoPreview").style.display === "none") {
+      document.getElementById("plantPhotoPreview").src = idPhotoDataUrl;
+      document.getElementById("plantPhotoPreview").style.display = "block";
+    }
+    toast("Naam overgenomen");
+  }
+
+  function renderSuggestion(container, latin, common, scorePct) {
+    const div = document.createElement("div");
+    div.className = "suggestion";
+    div.innerHTML = `<span>${escapeHtml(latin)}${common ? " — " + escapeHtml(common) : ""}</span><span class="score">${scorePct}</span>`;
+    div.onclick = () => adoptSuggestion(latin, common);
+    container.appendChild(div);
+  }
+
+  // Look up a Dutch (nld) vernacular name for a species via the free GBIF API,
+  // using the GBIF taxon key returned by ObsIdentify (format "GBIF:1234567").
+  async function fetchDutchNameFromGbif(scientificNameId) {
+    if (!scientificNameId || !scientificNameId.startsWith("GBIF:")) return "";
+    const gbifKey = scientificNameId.split(":")[1];
+    try {
+      const res = await fetch(`https://api.gbif.org/v1/species/${gbifKey}/vernacularNames`);
+      if (!res.ok) return "";
+      const json = await res.json();
+      const nl = (json.results || []).find(v => v.language === "nld" || v.language === "nl");
+      return nl ? nl.vernacularName : "";
+    } catch { return ""; }
+  }
+
+  async function identifyWithPlantNet(statusEl, container) {
     const key = localStorage.getItem("plantnetApiKey");
     if (!key) { toast("Vul eerst je Pl@ntNet API-key in bij Instellingen"); return; }
+    const blob = await (await fetch(idPhotoDataUrl)).blob();
+    const form = new FormData();
+    form.append("images", blob, "photo.jpg");
+    form.append("organs", "auto");
+    const res = await fetch(`https://my-api.plantnet.org/v2/identify/all?lang=nl&api-key=${encodeURIComponent(key)}`, {
+      method: "POST", body: form
+    });
+    if (!res.ok) throw new Error("Pl@ntNet gaf een fout (" + res.status + ")");
+    const json = await res.json();
+    const results = (json.results || []).slice(0, 5);
+    if (!results.length) { statusEl.textContent = "Geen suggesties gevonden."; return; }
+    statusEl.textContent = "Kies de juiste soort:";
+    results.forEach(r => {
+      const common = (r.species.commonNames || [])[0] || "";
+      renderSuggestion(container, r.species.scientificNameWithoutAuthor, common, Math.round(r.score * 100) + "%");
+    });
+  }
+
+  async function identifyWithObsIdentify(statusEl, container) {
+    const blob = await (await fetch(idPhotoDataUrl)).blob();
+    const form = new FormData();
+    form.append("image", blob, "photo.jpg");
+    const res = await fetch("https://multi-source.identify.biodiversityanalysis.eu/v2/observation/identify", {
+      method: "POST", body: form
+    });
+    if (!res.ok) {
+      if (res.status === 429) throw new Error("dagelijkse limiet van de gratis ObsIdentify-toegang bereikt (10/dag)");
+      throw new Error("ObsIdentify gaf een fout (" + res.status + ")");
+    }
+    const json = await res.json();
+    const items = (json.predictions?.[0]?.taxa?.items || []).slice(0, 5);
+    if (!items.length) { statusEl.textContent = "Geen suggesties gevonden."; return; }
+    statusEl.textContent = "Namen ophalen bij GBIF...";
+    for (const it of items) {
+      const common = await fetchDutchNameFromGbif(it.scientific_name_id);
+      renderSuggestion(container, it.scientific_name, common, Math.round(it.probability * 100) + "%");
+    }
+    statusEl.textContent = "Kies de juiste soort:";
+  }
+
+  document.getElementById("identifyBtn").onclick = async () => {
     if (!idPhotoDataUrl) { toast("Kies eerst een foto"); return; }
+    const source = document.getElementById("idSource").value;
     const statusEl = document.getElementById("idStatus");
+    const container = document.getElementById("idResults");
     statusEl.textContent = "Bezig met herkennen...";
-    document.getElementById("idResults").innerHTML = "";
+    container.innerHTML = "";
     try {
-      const blob = await (await fetch(idPhotoDataUrl)).blob();
-      const form = new FormData();
-      form.append("images", blob, "photo.jpg");
-      form.append("organs", "auto");
-      const res = await fetch(`https://my-api.plantnet.org/v2/identify/all?lang=nl&api-key=${encodeURIComponent(key)}`, {
-        method: "POST", body: form
-      });
-      if (!res.ok) throw new Error("Pl@ntNet gaf een fout (" + res.status + ")");
-      const json = await res.json();
-      const results = (json.results || []).slice(0, 5);
-      if (!results.length) { statusEl.textContent = "Geen suggesties gevonden."; return; }
-      statusEl.textContent = "Kies de juiste soort:";
-      const container = document.getElementById("idResults");
-      results.forEach(r => {
-        const div = document.createElement("div");
-        div.className = "suggestion";
-        const common = (r.species.commonNames || [])[0] || "";
-        div.innerHTML = `<span>${escapeHtml(r.species.scientificNameWithoutAuthor)}${common ? " — " + escapeHtml(common) : ""}</span><span class="score">${Math.round(r.score * 100)}%</span>`;
-        div.onclick = () => {
-          document.getElementById("plantLatin").value = r.species.scientificNameWithoutAuthor;
-          document.getElementById("plantName").value = common || r.species.scientificNameWithoutAuthor;
-          if (!document.getElementById("plantPhotoPreview").src || document.getElementById("plantPhotoPreview").style.display === "none") {
-            document.getElementById("plantPhotoPreview").src = idPhotoDataUrl;
-            document.getElementById("plantPhotoPreview").style.display = "block";
-          }
-          toast("Naam overgenomen");
-        };
-        container.appendChild(div);
-      });
+      if (source === "obsidentify") {
+        await identifyWithObsIdentify(statusEl, container);
+      } else {
+        await identifyWithPlantNet(statusEl, container);
+      }
     } catch (err) {
       statusEl.textContent = "Herkennen mislukt: " + err.message;
     }
