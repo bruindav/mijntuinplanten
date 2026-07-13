@@ -128,9 +128,10 @@
 
   #shapesSvg{position:absolute;inset:0;width:100%;height:100%;}
   .shape-terras{fill:#C9BBA0;fill-opacity:0.85;stroke:#8a7a60;stroke-width:0.4;cursor:pointer;}
-  .shape-border{fill:var(--leaf);fill-opacity:0.35;stroke:var(--moss);stroke-width:0.4;stroke-dasharray:1.2,0.8;cursor:pointer;}
+  .shape-border{fill:none;stroke:var(--leaf);stroke-linecap:round;stroke-linejoin:round;stroke-dasharray:1.4,1;cursor:pointer;}
+  .shape-border-outline{fill:none;stroke:var(--moss);stroke-linecap:round;stroke-linejoin:round;cursor:pointer;}
   .shape-pad{fill:none;stroke:#B7AE9C;stroke-linecap:round;stroke-linejoin:round;cursor:pointer;}
-  .shape-pad-outline{fill:none;stroke:#8a7a60;stroke-linecap:round;stroke-linejoin:round;}
+  .shape-pad-outline{fill:none;stroke:#8a7a60;stroke-linecap:round;stroke-linejoin:round;cursor:pointer;}
   .grid-line{stroke:#00000012;stroke-width:0.15;}
   .draw-preview{fill:none;stroke:var(--ochre);stroke-width:0.4;stroke-dasharray:1,1;}
   #mapWrap{
@@ -461,6 +462,24 @@
   </div>
 </div>
 
+<!-- Shape edit modal (pad / border / terras) -->
+<div class="modal-backdrop" id="shapeModalBackdrop">
+  <div class="modal">
+    <div class="close-row"><button id="closeShapeModal">&times;</button></div>
+    <h2 class="display" id="shapeModalTitle">Pad</h2>
+    <div class="field" id="shapeWidthField">
+      <label>Breedte (m)</label>
+      <input type="number" id="shapeWidthInput" min="0.1" step="0.1">
+    </div>
+    <div class="modal-actions">
+      <button class="btn-danger" id="shapeDeleteBtn" style="display:none;">Verwijderen</button>
+      <div style="flex:1;"></div>
+      <button class="btn-outline" id="shapeCancelBtn">Annuleren</button>
+      <button class="btn-primary" id="shapeSaveBtn">Opslaan</button>
+    </div>
+  </div>
+</div>
+
 <div class="toast" id="toast"></div>
 
 <!-- Firebase SDK -->
@@ -492,9 +511,10 @@
   let currentZone = "voortuin"; // "voortuin" | "achtertuin"
   let gardenData = {}; // last snapshot of the garden doc
   let drawMode = "plant"; // "plant" | "terras" | "border" | "pad"
-  let pendingRectCorner = null; // {x,y} in % while placing a terras/border
-  let pendingPadPoints = [];    // [{x,y}, ...] in % while placing a pad
-  const PAD_WIDTH_M = 0.8; // real-world path width used to scale the drawn stroke
+  let pendingRectCorner = null; // {x,y} in % while placing a terras
+  let pendingLinePoints = [];   // [{x,y}, ...] in % while placing a pad/border
+  let shapeModalCtx = null;     // { mode:'create'|'edit', type, points/rect, shapeId }
+  const DEFAULT_WIDTH_M = { pad: 0.8, border: 0.3 };
 
   const DEFAULT_DIMS = {
     voortuin:   { w: 5.5, d: 3   },
@@ -532,13 +552,13 @@
   const DRAW_HINTS = {
     plant: "",
     terras: "Tik twee hoekpunten van het terras aan.",
-    border: "Tik twee hoekpunten van de border aan.",
-    pad: "Tik de punten van het pad aan, sluit af met \u2018Pad klaar\u2019.",
+    border: "Tik de punten van de border aan, sluit af met \u2018Klaar\u2019.",
+    pad: "Tik de punten van het pad aan, sluit af met \u2018Klaar\u2019.",
   };
   function setDrawMode(mode) {
     drawMode = mode;
     pendingRectCorner = null;
-    pendingPadPoints = [];
+    pendingLinePoints = [];
     document.querySelectorAll(".mode-btn").forEach(b => b.classList.toggle("active", b.dataset.mode === mode));
     updateDrawHint();
     renderShapes();
@@ -546,24 +566,24 @@
   function updateDrawHint() {
     const hint = document.getElementById("drawHint");
     let text = DRAW_HINTS[drawMode];
-    if (drawMode === "pad" && pendingPadPoints.length) {
-      text += ` (${pendingPadPoints.length} punt${pendingPadPoints.length === 1 ? "" : "en"})`;
+    if ((drawMode === "pad" || drawMode === "border") && pendingLinePoints.length) {
+      text += ` (${pendingLinePoints.length} punt${pendingLinePoints.length === 1 ? "" : "en"})`;
     }
     if (!text) { hint.classList.remove("show"); hint.innerHTML = ""; return; }
     hint.classList.add("show");
     hint.innerHTML = escapeHtml(text);
-    if (drawMode === "pad" && pendingPadPoints.length >= 2) {
+    if ((drawMode === "pad" || drawMode === "border") && pendingLinePoints.length >= 2) {
       const btn = document.createElement("button");
       btn.className = "btn-primary";
-      btn.textContent = "Pad klaar";
-      btn.onclick = (e) => { e.stopPropagation(); finishPad(); };
+      btn.textContent = "Klaar";
+      btn.onclick = (e) => { e.stopPropagation(); openShapeModal({ mode: "create", type: drawMode, points: pendingLinePoints.slice() }); };
       hint.appendChild(btn);
     }
-    if ((drawMode === "pad" && pendingPadPoints.length) || (drawMode !== "plant" && pendingRectCorner)) {
+    if ((drawMode === "pad" || drawMode === "border") && pendingLinePoints.length) {
       const cancelBtn = document.createElement("button");
       cancelBtn.className = "btn-outline";
       cancelBtn.textContent = "Annuleer";
-      cancelBtn.onclick = (e) => { e.stopPropagation(); pendingRectCorner = null; pendingPadPoints = []; updateDrawHint(); renderShapes(); };
+      cancelBtn.onclick = (e) => { e.stopPropagation(); pendingLinePoints = []; updateDrawHint(); renderShapes(); };
       hint.appendChild(cancelBtn);
     }
   }
@@ -584,17 +604,63 @@
     const shapes = currentShapes().concat([{ ...shape, id: "s" + Date.now() }]);
     await saveShapes(shapes);
   }
+  async function updateShape(id, patch) {
+    const shapes = currentShapes().map(s => s.id === id ? { ...s, ...patch } : s);
+    await saveShapes(shapes);
+  }
   async function deleteShape(id) {
     const shapes = currentShapes().filter(s => s.id !== id);
     await saveShapes(shapes);
   }
-  async function finishPad() {
-    if (pendingPadPoints.length < 2) return;
-    await addShape({ type: "pad", points: pendingPadPoints });
-    pendingPadPoints = [];
+
+  // ---------- Shape create/edit modal (pad, border, terras) ----------
+  const SHAPE_LABEL = { pad: "Pad", border: "Border", terras: "Terras" };
+  function openShapeModal(ctx) {
+    shapeModalCtx = ctx;
+    const isLine = ctx.type === "pad" || ctx.type === "border";
+    document.getElementById("shapeModalTitle").textContent =
+      (ctx.mode === "create" ? "Nieuw" : "") + " " + SHAPE_LABEL[ctx.type].toLowerCase();
+    document.getElementById("shapeWidthField").style.display = isLine ? "block" : "none";
+    if (isLine) {
+      const existingWidth = ctx.mode === "edit" ? ctx.shape.widthM : DEFAULT_WIDTH_M[ctx.type];
+      document.getElementById("shapeWidthInput").value = existingWidth;
+    }
+    document.getElementById("shapeDeleteBtn").style.display = ctx.mode === "edit" ? "inline-block" : "none";
+    document.getElementById("shapeModalBackdrop").classList.add("active");
+  }
+  function closeShapeModal(clearPending) {
+    document.getElementById("shapeModalBackdrop").classList.remove("active");
+    if (clearPending) { pendingLinePoints = []; pendingRectCorner = null; updateDrawHint(); renderShapes(); }
+    shapeModalCtx = null;
+  }
+  document.getElementById("closeShapeModal").onclick = () => closeShapeModal(false);
+  document.getElementById("shapeCancelBtn").onclick = () => closeShapeModal(false);
+  document.getElementById("shapeSaveBtn").onclick = async () => {
+    if (!shapeModalCtx) return;
+    const isLine = shapeModalCtx.type === "pad" || shapeModalCtx.type === "border";
+    const widthM = isLine ? parseFloat(document.getElementById("shapeWidthInput").value) || DEFAULT_WIDTH_M[shapeModalCtx.type] : undefined;
+    if (shapeModalCtx.mode === "create") {
+      const shape = isLine
+        ? { type: shapeModalCtx.type, points: shapeModalCtx.points, widthM }
+        : { type: "terras", ...shapeModalCtx.rect };
+      await addShape(shape);
+      pendingLinePoints = []; pendingRectCorner = null;
+    } else {
+      await updateShape(shapeModalCtx.shapeId, isLine ? { widthM } : {});
+    }
+    document.getElementById("shapeModalBackdrop").classList.remove("active");
+    shapeModalCtx = null;
     updateDrawHint();
     renderShapes();
-  }
+  };
+  document.getElementById("shapeDeleteBtn").onclick = async () => {
+    if (!shapeModalCtx || shapeModalCtx.mode !== "edit") return;
+    if (!confirm(`Deze ${SHAPE_LABEL[shapeModalCtx.type].toLowerCase()} verwijderen?`)) return;
+    await deleteShape(shapeModalCtx.shapeId);
+    document.getElementById("shapeModalBackdrop").classList.remove("active");
+    shapeModalCtx = null;
+    renderShapes();
+  };
 
   document.querySelectorAll(".zone-tab").forEach(btn => {
     btn.onclick = () => {
@@ -690,14 +756,14 @@
 
   document.getElementById("mapWrap").addEventListener("click", (e) => {
     if (e.target.closest(".pin")) return; // existing pin click handled separately
-    if (e.target.closest(".shape-terras, .shape-border, .shape-pad-outline")) return; // shape click handled separately
+    if (e.target.closest(".shape-terras, .shape-border-outline, .shape-pad-outline")) return; // shape click handled separately
     const rect = document.getElementById("mapWrap").getBoundingClientRect();
     const x = ((e.clientX - rect.left) / rect.width) * 100;
     const y = ((e.clientY - rect.top) / rect.height) * 100;
 
     if (drawMode === "plant") {
       openPlantModal(null, x, y);
-    } else if (drawMode === "terras" || drawMode === "border") {
+    } else if (drawMode === "terras") {
       if (!pendingRectCorner) {
         pendingRectCorner = { x, y };
         updateDrawHint();
@@ -707,13 +773,13 @@
         const rw = Math.abs(x - pendingRectCorner.x), rh = Math.abs(y - pendingRectCorner.y);
         pendingRectCorner = null;
         if (rw > 0.5 && rh > 0.5) {
-          addShape({ type: drawMode, x: rx, y: ry, w: rw, h: rh });
+          openShapeModal({ mode: "create", type: "terras", rect: { x: rx, y: ry, w: rw, h: rh } });
         }
         updateDrawHint();
         renderShapes();
       }
-    } else if (drawMode === "pad") {
-      pendingPadPoints.push({ x, y });
+    } else if (drawMode === "pad" || drawMode === "border") {
+      pendingLinePoints.push({ x, y });
       updateDrawHint();
       renderShapes();
     }
@@ -729,9 +795,6 @@
   function renderShapes() {
     const svg = document.getElementById("shapesSvg");
     svg.innerHTML = "";
-    if (document.getElementById("mapEmpty").style.display !== "none" && !gardenData[zoneShapesKey()]) {
-      // still draw grid even if empty, so the scale is visible once dims are set
-    }
     const { w: widthM, d: depthM } = currentDims();
 
     // grid every 1m
@@ -744,21 +807,19 @@
       svg.appendChild(svgEl("line", { x1: 0, y1: py, x2: 100, y2: py, class: "grid-line" }));
     }
 
-    const padStrokePct = (PAD_WIDTH_M / widthM) * 100;
-
     currentShapes().forEach(s => {
-      if (s.type === "terras" || s.type === "border") {
-        const r = svgEl("rect", {
-          x: s.x, y: s.y, width: s.w, height: s.h,
-          class: s.type === "terras" ? "shape-terras" : "shape-border",
-        });
-        r.addEventListener("click", (e) => { e.stopPropagation(); confirmDeleteShape(s); });
+      if (s.type === "terras") {
+        const r = svgEl("rect", { x: s.x, y: s.y, width: s.w, height: s.h, class: "shape-terras" });
+        r.addEventListener("click", (e) => { e.stopPropagation(); openShapeModal({ mode: "edit", type: "terras", shapeId: s.id, shape: s }); });
         svg.appendChild(r);
-      } else if (s.type === "pad") {
+      } else if (s.type === "pad" || s.type === "border") {
+        const strokePct = ((s.widthM || DEFAULT_WIDTH_M[s.type]) / widthM) * 100;
         const pts = s.points.map(p => `${p.x},${p.y}`).join(" ");
-        const outline = svgEl("polyline", { points: pts, class: "shape-pad-outline", "stroke-width": padStrokePct + 1 });
-        const line = svgEl("polyline", { points: pts, class: "shape-pad", "stroke-width": padStrokePct });
-        outline.addEventListener("click", (e) => { e.stopPropagation(); confirmDeleteShape(s); });
+        const outlineClass = s.type === "pad" ? "shape-pad-outline" : "shape-border-outline";
+        const lineClass = s.type === "pad" ? "shape-pad" : "shape-border";
+        const outline = svgEl("polyline", { points: pts, class: outlineClass, "stroke-width": strokePct + 0.7 });
+        const line = svgEl("polyline", { points: pts, class: lineClass, "stroke-width": strokePct });
+        outline.addEventListener("click", (e) => { e.stopPropagation(); openShapeModal({ mode: "edit", type: s.type, shapeId: s.id, shape: s }); });
         svg.appendChild(outline);
         svg.appendChild(line);
       }
@@ -766,18 +827,13 @@
 
     // live preview while drawing
     if (pendingRectCorner) {
-      // preview follows next click, nothing to draw until second point — show marker at first corner
       svg.appendChild(svgEl("circle", { cx: pendingRectCorner.x, cy: pendingRectCorner.y, r: 1, fill: "var(--ochre)" }));
     }
-    if (pendingPadPoints.length) {
-      const pts = pendingPadPoints.map(p => `${p.x},${p.y}`).join(" ");
+    if (pendingLinePoints.length) {
+      const pts = pendingLinePoints.map(p => `${p.x},${p.y}`).join(" ");
       svg.appendChild(svgEl("polyline", { points: pts, class: "draw-preview" }));
-      pendingPadPoints.forEach(p => svg.appendChild(svgEl("circle", { cx: p.x, cy: p.y, r: 0.8, fill: "var(--ochre)" })));
+      pendingLinePoints.forEach(p => svg.appendChild(svgEl("circle", { cx: p.x, cy: p.y, r: 0.8, fill: "var(--ochre)" })));
     }
-  }
-  function confirmDeleteShape(s) {
-    const label = s.type === "terras" ? "terras" : s.type === "border" ? "border" : "pad";
-    if (confirm(`Deze ${label} verwijderen?`)) deleteShape(s.id);
   }
 
   // ---------- Month wheel ----------
