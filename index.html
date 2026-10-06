@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<!-- fix-1 -->
+<!-- fix-2 -->
 <title>Mijn Tuin — Plantenregister</title>
 <meta name="theme-color" content="#2C4A3B">
 <link rel="manifest" href="manifest.webmanifest">
@@ -89,18 +89,19 @@
     gap:0;
   }
   @media(min-width:900px){
-    .layout{grid-template-columns:1.4fr 1fr;}
+    .layout{grid-template-columns:1.1fr 1fr;}
   }
 
   /* Map panel */
   .map-panel{
-    padding:20px;border-right:1px solid var(--line);
+    padding:20px;border-right:1px solid var(--line);min-width:0;
   }
   .map-toolbar{
-    display:flex;justify-content:space-between;align-items:center;
+    display:flex;justify-content:space-between;align-items:baseline;
     margin-bottom:12px;flex-wrap:wrap;gap:10px;
   }
   .map-toolbar h2{margin:0;font-size:1.05rem;}
+  .map-toolbar .sub{font-size:0.74rem;color:#8a8a78;}
 
   .zone-tabs{
     display:flex;gap:4px;background:var(--paper-dim);border-radius:9px;padding:4px;margin-bottom:12px;
@@ -112,7 +113,7 @@
   .zone-tab.active{background:var(--moss);color:var(--paper);}
 
   .dims-form{
-    display:flex;align-items:flex-end;gap:8px;margin-bottom:10px;flex-wrap:wrap;
+    display:flex;align-items:flex-end;gap:8px;margin-bottom:12px;flex-wrap:wrap;
     background:white;border:1px solid var(--line);border-radius:10px;padding:10px 12px;
   }
   .dims-form .field{margin-bottom:0;flex:1;min-width:70px;}
@@ -120,59 +121,44 @@
   .dims-form .field input{padding:7px 8px;font-size:0.85rem;}
   .dims-form .hint{width:100%;font-size:0.72rem;color:#8a8a78;order:5;margin-top:2px;}
 
-  .draw-toolbar{
-    display:flex;gap:6px;margin-bottom:10px;flex-wrap:wrap;align-items:center;
-  }
-  .mode-btn{
-    background:white;border:1px solid var(--line);color:var(--soil);
-    padding:7px 12px;border-radius:8px;font-size:0.8rem;font-weight:600;
-  }
-  .mode-btn.active{background:var(--leaf);border-color:var(--leaf);color:white;}
-  .draw-hint{
-    font-size:0.76rem;color:var(--moss);background:#F3F6F1;border:1px dashed var(--leaf);
-    border-radius:8px;padding:6px 10px;margin-bottom:10px;display:none;
-  }
-  .draw-hint.show{display:block;}
-  .draw-hint button{margin-left:8px;padding:3px 9px;font-size:0.72rem;}
-
-  #shapesSvg{position:absolute;inset:0;width:100%;height:100%;}
-  .shape-terras{fill:#C9BBA0;fill-opacity:0.85;stroke:#8a7a60;stroke-width:0.4;cursor:pointer;}
-  .shape-border{fill:none;stroke:var(--leaf);stroke-linecap:round;stroke-linejoin:round;stroke-dasharray:1.4,1;cursor:pointer;}
-  .shape-border-outline{fill:none;stroke:var(--moss);stroke-linecap:round;stroke-linejoin:round;cursor:pointer;}
-  .shape-pad{fill:none;stroke:#B7AE9C;stroke-linecap:round;stroke-linejoin:round;cursor:pointer;}
-  .shape-pad-outline{fill:none;stroke:#8a7a60;stroke-linecap:round;stroke-linejoin:round;cursor:pointer;}
-  .grid-line{stroke:#00000012;stroke-width:0.15;}
-  .draw-preview{fill:none;stroke:var(--ochre);stroke-width:0.4;stroke-dasharray:1,1;}
+  /* Plantvakken (fix-2) */
   #mapWrap{
     position:relative;
     border:1px solid var(--line);
     border-radius:10px;
     overflow:hidden;
-    background:
-      linear-gradient(45deg, #eee 25%, transparent 25%),
-      linear-gradient(-45deg, #eee 25%, transparent 25%),
-      linear-gradient(45deg, transparent 75%, #eee 75%),
-      linear-gradient(-45deg, transparent 75%, #eee 75%);
-    background-size:20px 20px;
-    background-position:0 0, 0 10px, 10px -10px, -10px 0px;
-    aspect-ratio:4/3;
-    max-height:70vh;
-    cursor:crosshair;
+    background:var(--paper-dim);
+    container-type:inline-size;
   }
-  #mapImg{width:100%;height:100%;object-fit:contain;display:block;pointer-events:none;user-select:none;opacity:0.45;}
-  #mapEmpty{
-    position:absolute;inset:0;display:flex;flex-direction:column;
-    align-items:center;justify-content:center;gap:10px;color:#8a8a78;
-    text-align:center;padding:20px;pointer-events:none;
+  #mapImg{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;display:none;pointer-events:none;user-select:none;opacity:0.4;}
+  #vakGrid{position:relative;display:grid;}
+  .vak{
+    display:flex;flex-direction:column;align-items:stretch;gap:2px;
+    min-width:0;overflow:hidden;text-align:left;
+    padding:6px 7px;border-radius:0;
+    background:rgba(250,247,240,0.86);
+    border:none;border-right:1px solid var(--line);border-bottom:1px solid var(--line);
+    color:var(--ink);font-weight:500;
   }
-  .pin{
-    position:absolute;transform:translate(-50%,-100%);
-    cursor:pointer;filter:drop-shadow(0 1px 2px rgba(0,0,0,0.35));
-    transition:transform .15s ease;
+  .vak:hover{background:rgba(255,255,255,0.95);}
+  .vak:active{transform:none;}
+  .vak.has-plants{background:rgba(214,226,208,0.9);}
+  .vak.has-plants:hover{background:rgba(200,217,193,0.95);}
+  .vak:focus-visible{outline-offset:-3px;}
+  .vak-head{display:flex;justify-content:space-between;align-items:center;gap:4px;}
+  .vak-label{font-size:0.7rem;font-weight:500;color:var(--soil);}
+  .vak-count{
+    font-size:0.64rem;font-weight:700;background:var(--moss);color:var(--paper);
+    border-radius:999px;min-width:18px;height:18px;padding:0 5px;
+    display:inline-flex;align-items:center;justify-content:center;
   }
-  .pin:hover{transform:translate(-50%,-100%) scale(1.15);}
-  .pin.dim{opacity:0.28;}
-  .pin.lit{filter:drop-shadow(0 0 6px var(--ochre)) drop-shadow(0 1px 2px rgba(0,0,0,0.35));}
+  .vak-plant{
+    font-size:0.72rem;line-height:1.35;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
+  }
+  .vak-plant.dim{opacity:0.35;}
+  .vak-plant.lit{font-weight:700;}
+  .vak-plant .dot{width:7px;height:7px;margin-right:4px;}
+  .map-note{font-size:0.72rem;color:#8a8a78;margin:6px 0 0;}
 
   /* Month wheel */
   .wheel-card{
@@ -211,12 +197,24 @@
   .dot.prune{background:#4B79A1;}
 
   /* Plant list */
-  .list-panel{padding:20px;}
+  .list-panel{padding:20px;min-width:0;}
   .list-panel h2{margin:0 0 12px;font-size:1.05rem;}
   #searchBox{
     width:100%;padding:9px 12px;border:1px solid var(--line);border-radius:8px;
-    font-size:0.85rem;margin-bottom:12px;background:white;
+    font-size:0.85rem;margin-bottom:10px;background:white;
   }
+  .sort-bar{display:flex;align-items:center;gap:6px;margin-bottom:12px;flex-wrap:wrap;}
+  .sort-bar .lbl{font-size:0.74rem;color:#8a8a78;margin-right:2px;}
+  .sort-btn{
+    background:white;border:1px solid var(--line);color:var(--soil);
+    padding:6px 11px;border-radius:999px;font-size:0.78rem;font-weight:600;
+  }
+  .sort-btn.active{background:var(--moss);border-color:var(--moss);color:var(--paper);}
+  .group-head{
+    font-size:0.7rem;text-transform:uppercase;letter-spacing:0.06em;font-weight:700;
+    color:var(--leaf);margin:14px 0 6px;display:flex;justify-content:space-between;
+  }
+  .group-head:first-child{margin-top:0;}
   .plant-row{
     display:flex;align-items:center;gap:12px;
     padding:10px;border:1px solid var(--line);border-radius:10px;
@@ -231,7 +229,13 @@
   .plant-row .info{flex:1;min-width:0;}
   .plant-row .name{font-weight:600;font-size:0.9rem;}
   .plant-row .latin{font-size:0.76rem;color:#8a8a78;font-style:italic;}
-  .plant-row .meta{font-size:0.72rem;color:#8a8a78;margin-top:2px;}
+  .plant-row .meta{font-size:0.72rem;color:#8a8a78;margin-top:3px;display:flex;gap:6px;flex-wrap:wrap;align-items:center;}
+  .badge{
+    font-size:0.68rem;font-weight:600;border-radius:999px;padding:2px 8px;white-space:nowrap;
+    background:var(--paper-dim);color:var(--soil);
+  }
+  .badge.in-vak{background:var(--moss);color:var(--paper);font-family:'IBM Plex Mono',monospace;font-weight:500;}
+  .badge.none{background:transparent;border:1px dashed var(--line);color:#8a8a78;}
   #emptyList{color:#8a8a78;font-size:0.85rem;padding:20px 0;text-align:center;}
 
   /* Modal */
@@ -246,6 +250,7 @@
     padding:22px;margin:auto;
   }
   .modal h2{margin:0 0 4px;font-size:1.2rem;}
+  .modal .modal-sub{font-size:0.8rem;color:#8a8a78;margin:0 0 14px;}
   .modal .close-row{display:flex;justify-content:flex-end;}
   .modal .close-row button{background:none;border:none;font-size:1.3rem;color:#8a8a78;padding:4px;}
   .field{margin-bottom:14px;}
@@ -284,17 +289,6 @@
     font-size:0.85rem;z-index:200;opacity:0;pointer-events:none;transition:opacity .2s ease;
   }
   .toast.show{opacity:1;}
-
-  /* fix-1: verplaatsen, plek kiezen, versie */
-  .shape-border,.shape-pad{pointer-events:none;}
-  .pin{touch-action:none;}
-  .pin.dragging{transition:none;transform:translate(-50%,-100%) scale(1.3);cursor:grabbing;z-index:5;}
-  #mapWrap.move-mode{cursor:default;}
-  #mapWrap.move-mode .pin{cursor:grab;}
-  #mapWrap.move-mode .shape-terras,
-  #mapWrap.move-mode .shape-border-outline,
-  #mapWrap.move-mode .shape-pad-outline{cursor:grab;touch-action:none;}
-  #mapWrap.placing{box-shadow:0 0 0 3px var(--ochre);}
   .app-version{text-align:center;font-size:0.68rem;color:#8a8a78;padding:14px 0 22px;}
 </style>
 </head>
@@ -313,7 +307,7 @@
 
 <div id="signedOutView">
   <h2 class="display">Welkom in je tuinregister</h2>
-  <p>Log in om je plattegrond te bekijken en planten te registreren. Iedereen die inlogt deelt dezelfde tuin-data.</p>
+  <p>Log in om je plantvakken te bekijken en planten te registreren. Iedereen die inlogt deelt dezelfde tuin-data.</p>
   <button class="btn-primary" id="signInBtn">Inloggen met Google</button>
 </div>
 
@@ -321,7 +315,8 @@
   <div class="layout">
     <section class="map-panel">
       <div class="map-toolbar">
-        <h2 class="display">Plattegrond</h2>
+        <h2 class="display">Plantvakken</h2>
+        <span class="sub">Tik een vak aan om de planten te zien of er een toe te voegen</span>
       </div>
       <div class="zone-tabs">
         <button class="zone-tab active" id="tabVoortuin" data-zone="voortuin">Voortuin</button>
@@ -338,26 +333,14 @@
           <input type="number" id="dimDepth" min="0.5" step="0.1">
         </div>
         <button class="btn-outline" id="saveDimsBtn">Afmetingen opslaan</button>
-        <div class="hint">Vul de echte maten van je <span id="dimZoneLabel">voortuin</span> in — de plattegrond schaalt daarop mee.</div>
+        <div class="hint">De <span id="dimZoneLabel">voortuin</span> wordt verdeeld in vakken van 2 × 2 m: <span id="dimVakInfo"></span>.</div>
       </div>
-
-      <div class="draw-toolbar">
-        <button class="mode-btn active" data-mode="plant" id="modePlant">🌱 Plant</button>
-        <button class="mode-btn" data-mode="terras" id="modeTerras">◻ Terras</button>
-        <button class="mode-btn" data-mode="border" id="modeBorder">〰 Border</button>
-        <button class="mode-btn" data-mode="pad" id="modePad">〜 Pad</button>
-        <button class="mode-btn" data-mode="move" id="modeMove">✋ Verplaats</button>
-      </div>
-      <div class="draw-hint" id="drawHint"></div>
 
       <div id="mapWrap">
-        <img id="mapImg" style="display:none;">
-        <svg id="shapesSvg" viewBox="0 0 100 100" preserveAspectRatio="none"></svg>
-        <div id="mapEmpty">
-          <span>🌿</span>
-          <span>Vul de afmetingen in, klik dan op de plattegrond om een plant, terras, border of pad te plaatsen.</span>
-        </div>
+        <img id="mapImg" alt="">
+        <div id="vakGrid"></div>
       </div>
+      <p class="map-note" id="noVakNote" style="display:none;"></p>
       <p style="font-size:0.72rem;color:#8a8a78;margin-top:6px;">
         Optioneel: <button class="btn-outline" id="uploadMapBtn" style="padding:4px 10px;font-size:0.72rem;">foto als achtergrond (referentie)</button>
         <input type="file" id="mapFileInput" accept="image/*" style="display:none;">
@@ -378,7 +361,13 @@
 
     <section class="list-panel">
       <h2 class="display">Planten <span id="plantCount" class="mono" style="font-size:0.85rem;color:#8a8a78;"></span></h2>
-      <input type="text" id="searchBox" placeholder="Zoek op naam...">
+      <input type="text" id="searchBox" placeholder="Zoek op naam, soort of vak...">
+      <div class="sort-bar">
+        <span class="lbl">Sorteer op</span>
+        <button class="sort-btn active" data-sort="naam">Naam</button>
+        <button class="sort-btn" data-sort="vak">Plantvak</button>
+        <button class="sort-btn" data-sort="soort">Soort</button>
+      </div>
       <button class="btn-primary" id="addPlantBtn" style="width:100%;margin-bottom:14px;">+ Plant toevoegen</button>
       <div id="plantList"></div>
       <div id="emptyList" style="display:none;">Nog geen planten geregistreerd.</div>
@@ -410,7 +399,7 @@
     </div>
 
     <div class="field">
-      <label>Foto (voor in de tuinweergave)</label>
+      <label>Foto</label>
       <input type="file" id="plantPhotoInput" accept="image/*">
       <img id="plantPhotoPreview" style="max-width:80px;border-radius:8px;margin-top:6px;display:none;">
     </div>
@@ -419,9 +408,26 @@
       <div class="field"><label>Latijnse naam</label><input type="text" id="plantLatin" placeholder="bv. Buddleja davidii"></div>
     </div>
     <div class="field-row">
-      <div class="field"><label>Geplant op</label><input type="date" id="plantDate"></div>
-      <div class="field"><label>Plek / notitie</label><input type="text" id="plantLocationNote" placeholder="bv. bij de schutting"></div>
+      <div class="field">
+        <label>Tuin</label>
+        <select id="plantZone">
+          <option value="voortuin">Voortuin</option>
+          <option value="achtertuin">Achtertuin</option>
+        </select>
+      </div>
+      <div class="field">
+        <label>Plantvak</label>
+        <select id="plantVak"></select>
+      </div>
     </div>
+    <div class="field-row">
+      <div class="field">
+        <label>Soort</label>
+        <select id="plantCategory"></select>
+      </div>
+      <div class="field"><label>Geplant op</label><input type="date" id="plantDate"></div>
+    </div>
+    <div class="field"><label>Plek / notitie</label><input type="text" id="plantLocationNote" placeholder="bv. bij de schutting"></div>
 
     <div class="section-label">Verzorging</div>
     <div class="field-row">
@@ -466,6 +472,18 @@
   </div>
 </div>
 
+<!-- Plantvak modal (fix-2) -->
+<div class="modal-backdrop" id="vakModalBackdrop">
+  <div class="modal">
+    <div class="close-row"><button id="closeVakModal">&times;</button></div>
+    <h2 class="display" id="vakModalTitle">Vak</h2>
+    <p class="modal-sub" id="vakModalSub"></p>
+    <div id="vakPlantList"></div>
+    <div id="vakEmpty" style="display:none;color:#8a8a78;font-size:0.85rem;padding:6px 0 14px;">Nog geen planten in dit vak.</div>
+    <button class="btn-primary" id="vakAddBtn" style="width:100%;margin-top:6px;">+ Plant in dit vak</button>
+  </div>
+</div>
+
 <!-- Settings modal -->
 <div class="modal-backdrop" id="settingsModalBackdrop">
   <div class="modal" id="settingsModal">
@@ -483,38 +501,17 @@
   </div>
 </div>
 
-<!-- Shape edit modal (pad / border / terras) -->
-<div class="modal-backdrop" id="shapeModalBackdrop">
-  <div class="modal">
-    <div class="close-row"><button id="closeShapeModal">&times;</button></div>
-    <h2 class="display" id="shapeModalTitle">Pad</h2>
-    <div class="field" id="shapeWidthField">
-      <label>Breedte (m)</label>
-      <input type="number" id="shapeWidthInput" min="0.1" step="0.1">
-    </div>
-    <div class="field-row" id="shapeSizeFields">
-      <div class="field"><label>Breedte (m)</label><input type="number" id="shapeRectW" min="0.1" step="0.1"></div>
-      <div class="field"><label>Diepte (m)</label><input type="number" id="shapeRectD" min="0.1" step="0.1"></div>
-    </div>
-    <div class="modal-actions">
-      <button class="btn-danger" id="shapeDeleteBtn" style="display:none;">Verwijderen</button>
-      <div style="flex:1;"></div>
-      <button class="btn-outline" id="shapeCancelBtn">Annuleren</button>
-      <button class="btn-primary" id="shapeSaveBtn">Opslaan</button>
-    </div>
-  </div>
-</div>
-
-<footer class="app-version mono">versie fix-1</footer>
+<footer class="app-version mono">versie fix-2</footer>
 
 <div class="toast" id="toast"></div>
 
 <!-- Firebase SDK -->
 <script type="module">
+  // fix-2: plantvakken van 2 x 2 m, soort per plant, sorteerbare lijst
   import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
   import { getAuth, GoogleAuthProvider, signInWithPopup, signOut, onAuthStateChanged }
     from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
-  import { getFirestore, collection, doc, addDoc, updateDoc, deleteDoc, onSnapshot, setDoc, getDoc }
+  import { getFirestore, collection, doc, addDoc, updateDoc, deleteDoc, onSnapshot, setDoc }
     from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
   import { firebaseConfig } from "./firebase-config.js";
@@ -530,445 +527,249 @@
   const gardenDocRef = doc(db, "gardens", GARDEN_ID);
 
   const MONTHS = ["jan","feb","mrt","apr","mei","jun","jul","aug","sep","okt","nov","dec"];
-
-  let plants = [];
-  let currentEditId = null;
-  let currentLat = null, currentLng = null; // pin position (percentages 0-100)
-  let selectedMonth = null; // 0-11 or null
-  let currentZone = "voortuin"; // "voortuin" | "achtertuin"
-  let gardenData = {}; // last snapshot of the garden doc
-  let drawMode = "plant"; // "plant" | "terras" | "border" | "pad"
-  let pendingRectCorner = null; // {x,y} in % while placing a terras
-  let pendingLinePoints = [];   // [{x,y}, ...] in % while placing a pad/border
-  let shapeModalCtx = null;     // { mode:'create'|'edit', type, points/rect, shapeId }
-  const DEFAULT_WIDTH_M = { pad: 0.8, border: 0.3 };
-  let placingPlant = false;        // true after "+ Plant toevoegen", until a spot is tapped
-  let suppressMapClickUntil = 0;   // ignore the click that follows a drag
-  const mapWrapEl = document.getElementById("mapWrap");
-  const clamp = (v, lo, hi) => Math.min(Math.max(v, lo), hi);
-  const round2 = (v) => Math.round(v * 100) / 100;
-
+  const VAK_M = 2; // plantvakken van 2 x 2 meter
+  const ZONE_ORDER = ["voortuin", "achtertuin"];
+  const ZONE_LABEL = { voortuin: "Voortuin", achtertuin: "Achtertuin" };
+  const ZONE_SHORT = { voortuin: "Voor", achtertuin: "Achter" };
+  const CATEGORIES = ["Voedselplant", "Kruid", "Gras", "Sierplant", "Struik", "Boom", "Klimplant", "Bolgewas", "Overig"];
   const DEFAULT_DIMS = {
     voortuin:   { w: 5.5, d: 3   },
     achtertuin: { w: 5.5, d: 12  },
   };
 
-  function currentDims() {
-    const wKey = currentZone === "voortuin" ? "dimVoortuinW" : "dimAchtertuinW";
-    const dKey = currentZone === "voortuin" ? "dimVoortuinD" : "dimAchtertuinD";
+  let plants = [];
+  let currentEditId = null;
+  let selectedMonth = null; // 0-11 or null
+  let currentZone = "voortuin"; // "voortuin" | "achtertuin"
+  let gardenData = {}; // last snapshot of the garden doc
+  let sortKey = "naam"; // "naam" | "vak" | "soort"
+  let sortDir = 1;      // 1 = oplopend, -1 = aflopend
+  let openVak = null;   // label of the vak shown in the vak modal
+
+  const $ = (id) => document.getElementById(id);
+  const clamp = (v, lo, hi) => Math.min(Math.max(v, lo), hi);
+
+  // ---------- Afmetingen en vakken ----------
+  function zoneDims(zone) {
+    const cap = zone === "voortuin" ? "Voortuin" : "Achtertuin";
     return {
-      w: gardenData[wKey] || DEFAULT_DIMS[currentZone].w,
-      d: gardenData[dKey] || DEFAULT_DIMS[currentZone].d,
+      w: gardenData["dim" + cap + "W"] || DEFAULT_DIMS[zone].w,
+      d: gardenData["dim" + cap + "D"] || DEFAULT_DIMS[zone].d,
     };
   }
+  // Split a length in metres into pieces of 2 m; a leftover under 0.5 m joins the last piece.
+  function segments(total) {
+    const out = [];
+    let left = total;
+    while (left > 1e-9) {
+      const piece = Math.min(VAK_M, left);
+      if (piece < 0.5 && out.length) out[out.length - 1] += piece;
+      else out.push(piece);
+      left -= piece;
+    }
+    return out.map(v => Math.round(v * 100) / 100);
+  }
+  const colLetter = (i) => String.fromCharCode(65 + i);
+  const vakLabel = (c, r) => colLetter(c) + (r + 1);
+  function parseVak(label) {
+    const m = /^([A-Z])(\d+)$/.exec(label || "");
+    return m ? { c: m[1].charCodeAt(0) - 65, r: Number(m[2]) - 1 } : null;
+  }
+  function zoneGrid(zone) {
+    const { w, d } = zoneDims(zone);
+    return { w, d, cols: segments(w), rows: segments(d) };
+  }
+  function zoneVakLabels(zone) {
+    const { cols, rows } = zoneGrid(zone);
+    const out = [];
+    for (let c = 0; c < cols.length; c++) for (let r = 0; r < rows.length; r++) out.push(vakLabel(c, r));
+    return out;
+  }
+  const plantZone = (p) => p.zone === "voortuin" ? "voortuin" : "achtertuin";
+  // The vak of a plant. Older plants only have a position on the old map; their vak follows from that.
+  function plantVak(p) {
+    if (p.vak != null) return p.vak;
+    if (p.x == null || p.y == null) return "";
+    const { w, d, cols, rows } = zoneGrid(plantZone(p));
+    const c = clamp(Math.floor((p.x / 100) * w / VAK_M), 0, cols.length - 1);
+    const r = clamp(Math.floor((p.y / 100) * d / VAK_M), 0, rows.length - 1);
+    return vakLabel(c, r);
+  }
+  const fmtM = (v) => String(v).replace(".", ",");
 
-  function applyAspectRatio() {
-    const { w, d } = currentDims();
-    document.getElementById("mapWrap").style.aspectRatio = `${w} / ${d}`;
-    document.getElementById("dimWidth").value = w;
-    document.getElementById("dimDepth").value = d;
-    document.getElementById("dimZoneLabel").textContent = currentZone;
+  function applyDims() {
+    const { w, d, cols, rows } = zoneGrid(currentZone);
+    $("dimWidth").value = w;
+    $("dimDepth").value = d;
+    $("dimZoneLabel").textContent = currentZone;
+    $("dimVakInfo").textContent = `${cols.length} breed (A–${colLetter(cols.length - 1)}) en ${rows.length} diep (1–${rows.length})`;
   }
 
-  document.getElementById("saveDimsBtn").onclick = async () => {
-    const w = parseFloat(document.getElementById("dimWidth").value);
-    const d = parseFloat(document.getElementById("dimDepth").value);
+  $("saveDimsBtn").onclick = async () => {
+    const w = parseFloat($("dimWidth").value);
+    const d = parseFloat($("dimDepth").value);
     if (!w || !d || w <= 0 || d <= 0) { toast("Vul een geldige breedte en diepte in"); return; }
-    const wKey = currentZone === "voortuin" ? "dimVoortuinW" : "dimAchtertuinW";
-    const dKey = currentZone === "voortuin" ? "dimVoortuinD" : "dimAchtertuinD";
-    await setDoc(gardenDocRef, { [wKey]: w, [dKey]: d }, { merge: true });
+    if (w > 52) { toast("De breedte kan maximaal 52 m zijn"); return; }
+    const cap = currentZone === "voortuin" ? "Voortuin" : "Achtertuin";
+    await setDoc(gardenDocRef, { ["dim" + cap + "W"]: w, ["dim" + cap + "D"]: d }, { merge: true });
     toast("Afmetingen opgeslagen");
-  };
-
-  // ---------- Draw mode toolbar ----------
-  const DRAW_HINTS = {
-    plant: "",
-    terras: "Tik twee hoekpunten van het terras aan.",
-    border: "Tik de punten van de border aan, sluit af met \u2018Klaar\u2019.",
-    pad: "Tik de punten van het pad aan, sluit af met \u2018Klaar\u2019.",
-    move: "Sleep een plant, terras, border of pad naar de nieuwe plek. Planten kun je altijd verslepen.",
-  };
-  function setPlacing(on) {
-    placingPlant = on;
-    mapWrapEl.classList.toggle("placing", on);
-  }
-  function setDrawMode(mode) {
-    drawMode = mode;
-    setPlacing(false);
-    mapWrapEl.classList.toggle("move-mode", mode === "move");
-    pendingRectCorner = null;
-    pendingLinePoints = [];
-    document.querySelectorAll(".mode-btn").forEach(b => b.classList.toggle("active", b.dataset.mode === mode));
-    updateDrawHint();
-    renderShapes();
-  }
-  function updateDrawHint() {
-    const hint = document.getElementById("drawHint");
-    let text = DRAW_HINTS[drawMode];
-    if ((drawMode === "pad" || drawMode === "border") && pendingLinePoints.length) {
-      text += ` (${pendingLinePoints.length} punt${pendingLinePoints.length === 1 ? "" : "en"})`;
-    }
-    if (drawMode === "plant" && placingPlant) text = "Tik op de plattegrond op de plek van de nieuwe plant.";
-    if (!text) { hint.classList.remove("show"); hint.innerHTML = ""; return; }
-    hint.classList.add("show");
-    hint.innerHTML = escapeHtml(text);
-    if (drawMode === "plant" && placingPlant) {
-      const cancelBtn = document.createElement("button");
-      cancelBtn.className = "btn-outline";
-      cancelBtn.textContent = "Annuleer";
-      cancelBtn.onclick = (e) => { e.stopPropagation(); setPlacing(false); updateDrawHint(); };
-      hint.appendChild(cancelBtn);
-    }
-    if ((drawMode === "pad" || drawMode === "border") && pendingLinePoints.length >= 2) {
-      const btn = document.createElement("button");
-      btn.className = "btn-primary";
-      btn.textContent = "Klaar";
-      btn.onclick = (e) => { e.stopPropagation(); openShapeModal({ mode: "create", type: drawMode, points: pendingLinePoints.slice() }); };
-      hint.appendChild(btn);
-    }
-    if ((drawMode === "pad" || drawMode === "border") && pendingLinePoints.length) {
-      const cancelBtn = document.createElement("button");
-      cancelBtn.className = "btn-outline";
-      cancelBtn.textContent = "Annuleer";
-      cancelBtn.onclick = (e) => { e.stopPropagation(); pendingLinePoints = []; updateDrawHint(); renderShapes(); };
-      hint.appendChild(cancelBtn);
-    }
-  }
-  document.querySelectorAll(".mode-btn").forEach(btn => {
-    btn.onclick = () => setDrawMode(btn.dataset.mode);
-  });
-
-  function zoneShapesKey() {
-    return currentZone === "voortuin" ? "shapesVoortuin" : "shapesAchtertuin";
-  }
-  function currentShapes() {
-    return gardenData[zoneShapesKey()] || [];
-  }
-  async function saveShapes(shapes) {
-    await setDoc(gardenDocRef, { [zoneShapesKey()]: shapes }, { merge: true });
-  }
-  async function addShape(shape) {
-    const shapes = currentShapes().concat([{ ...shape, id: "s" + Date.now() }]);
-    await saveShapes(shapes);
-  }
-  async function updateShape(id, patch) {
-    const shapes = currentShapes().map(s => s.id === id ? { ...s, ...patch } : s);
-    await saveShapes(shapes);
-  }
-  async function deleteShape(id) {
-    const shapes = currentShapes().filter(s => s.id !== id);
-    await saveShapes(shapes);
-  }
-
-  // ---------- Shape create/edit modal (pad, border, terras) ----------
-  const SHAPE_LABEL = { pad: "Pad", border: "Border", terras: "Terras" };
-  const NEW_SHAPE_LABEL = { pad: "Nieuw pad", border: "Nieuwe border", terras: "Nieuw terras" };
-  // Terras size from the metre inputs, kept inside the map.
-  function rectFromInputs(r) {
-    const { w: widthM, d: depthM } = currentDims();
-    const wm = parseFloat(document.getElementById("shapeRectW").value);
-    const dm = parseFloat(document.getElementById("shapeRectD").value);
-    const w = wm > 0 ? Math.min(wm / widthM * 100, 100) : r.w;
-    const h = dm > 0 ? Math.min(dm / depthM * 100, 100) : r.h;
-    return { x: clamp(r.x, 0, 100 - w), y: clamp(r.y, 0, 100 - h), w, h };
-  }
-  function openShapeModal(ctx) {
-    shapeModalCtx = ctx;
-    const isLine = ctx.type === "pad" || ctx.type === "border";
-    document.getElementById("shapeModalTitle").textContent =
-      ctx.mode === "create" ? NEW_SHAPE_LABEL[ctx.type] : SHAPE_LABEL[ctx.type];
-    document.getElementById("shapeWidthField").style.display = isLine ? "block" : "none";
-    document.getElementById("shapeSizeFields").style.display = isLine ? "none" : "grid";
-    if (!isLine) {
-      const r = ctx.mode === "edit" ? ctx.shape : ctx.rect;
-      const { w: widthM, d: depthM } = currentDims();
-      document.getElementById("shapeRectW").value = round2(r.w / 100 * widthM);
-      document.getElementById("shapeRectD").value = round2(r.h / 100 * depthM);
-    }
-    if (isLine) {
-      const existingWidth = ctx.mode === "edit" ? ctx.shape.widthM : DEFAULT_WIDTH_M[ctx.type];
-      document.getElementById("shapeWidthInput").value = existingWidth;
-    }
-    document.getElementById("shapeDeleteBtn").style.display = ctx.mode === "edit" ? "inline-block" : "none";
-    document.getElementById("shapeModalBackdrop").classList.add("active");
-  }
-  function closeShapeModal(clearPending) {
-    document.getElementById("shapeModalBackdrop").classList.remove("active");
-    if (clearPending) { pendingLinePoints = []; pendingRectCorner = null; updateDrawHint(); renderShapes(); }
-    shapeModalCtx = null;
-  }
-  document.getElementById("closeShapeModal").onclick = () => closeShapeModal(false);
-  document.getElementById("shapeCancelBtn").onclick = () => closeShapeModal(false);
-  document.getElementById("shapeSaveBtn").onclick = async () => {
-    if (!shapeModalCtx) return;
-    const isLine = shapeModalCtx.type === "pad" || shapeModalCtx.type === "border";
-    const widthM = isLine ? parseFloat(document.getElementById("shapeWidthInput").value) || DEFAULT_WIDTH_M[shapeModalCtx.type] : undefined;
-    if (shapeModalCtx.mode === "create") {
-      const shape = isLine
-        ? { type: shapeModalCtx.type, points: shapeModalCtx.points, widthM }
-        : { type: "terras", ...rectFromInputs(shapeModalCtx.rect) };
-      await addShape(shape);
-      pendingLinePoints = []; pendingRectCorner = null;
-    } else {
-      await updateShape(shapeModalCtx.shapeId, isLine ? { widthM } : rectFromInputs(shapeModalCtx.shape));
-    }
-    document.getElementById("shapeModalBackdrop").classList.remove("active");
-    shapeModalCtx = null;
-    updateDrawHint();
-    renderShapes();
-  };
-  document.getElementById("shapeDeleteBtn").onclick = async () => {
-    if (!shapeModalCtx || shapeModalCtx.mode !== "edit") return;
-    if (!confirm(`Deze ${SHAPE_LABEL[shapeModalCtx.type].toLowerCase()} verwijderen?`)) return;
-    await deleteShape(shapeModalCtx.shapeId);
-    document.getElementById("shapeModalBackdrop").classList.remove("active");
-    shapeModalCtx = null;
-    renderShapes();
   };
 
   document.querySelectorAll(".zone-tab").forEach(btn => {
     btn.onclick = () => {
       currentZone = btn.dataset.zone;
       document.querySelectorAll(".zone-tab").forEach(b => b.classList.toggle("active", b === btn));
-      setDrawMode("plant");
-      applyAspectRatio();
+      applyDims();
       renderMapImage();
-      renderPins();
-      renderShapes();
+      renderGrid();
     };
   });
 
   // ---------- Auth ----------
-  document.getElementById("signInBtn").onclick = () => signInWithPopup(auth, provider).catch(e => toast(e.message));
-  document.getElementById("signOutBtn").onclick = () => signOut(auth);
+  $("signInBtn").onclick = () => signInWithPopup(auth, provider).catch(e => toast(e.message));
+  $("signOutBtn").onclick = () => signOut(auth);
 
   onAuthStateChanged(auth, user => {
-    const signedOut = document.getElementById("signedOutView");
-    const main = document.getElementById("mainView");
-    const settingsBtn = document.getElementById("settingsBtn");
-    const signOutBtn = document.getElementById("signOutBtn");
+    const signedOut = $("signedOutView");
+    const main = $("mainView");
     if (user) {
       signedOut.style.display = "none";
       main.classList.add("active");
-      settingsBtn.style.display = "inline-block";
-      signOutBtn.style.display = "inline-block";
+      $("settingsBtn").style.display = "inline-block";
+      $("signOutBtn").style.display = "inline-block";
       listenPlants();
-      listenGardenMap();
+      listenGarden();
     } else {
       signedOut.style.display = "block";
       main.classList.remove("active");
-      settingsBtn.style.display = "none";
-      signOutBtn.style.display = "none";
+      $("settingsBtn").style.display = "none";
+      $("signOutBtn").style.display = "none";
     }
   });
 
   // ---------- Toast ----------
   function toast(msg) {
-    const t = document.getElementById("toast");
+    const t = $("toast");
     t.textContent = msg;
     t.classList.add("show");
     setTimeout(() => t.classList.remove("show"), 2600);
   }
 
   // ---------- Settings (Pl@ntNet key) ----------
-  document.getElementById("settingsBtn").onclick = () => {
-    document.getElementById("plantnetKeyInput").value = localStorage.getItem("plantnetApiKey") || "";
-    document.getElementById("settingsModalBackdrop").classList.add("active");
+  $("settingsBtn").onclick = () => {
+    $("plantnetKeyInput").value = localStorage.getItem("plantnetApiKey") || "";
+    $("settingsModalBackdrop").classList.add("active");
   };
-  document.getElementById("closeSettingsModal").onclick = () => document.getElementById("settingsModalBackdrop").classList.remove("active");
-  document.getElementById("saveSettingsBtn").onclick = () => {
-    localStorage.setItem("plantnetApiKey", document.getElementById("plantnetKeyInput").value.trim());
-    document.getElementById("settingsModalBackdrop").classList.remove("active");
+  $("closeSettingsModal").onclick = () => $("settingsModalBackdrop").classList.remove("active");
+  $("saveSettingsBtn").onclick = () => {
+    localStorage.setItem("plantnetApiKey", $("plantnetKeyInput").value.trim());
+    $("settingsModalBackdrop").classList.remove("active");
     toast("Instellingen opgeslagen");
   };
 
-  // ---------- Garden map (background image) ----------
-  document.getElementById("uploadMapBtn").onclick = () => document.getElementById("mapFileInput").click();
-  document.getElementById("mapFileInput").onchange = async (e) => {
+  // ---------- Achtergrondfoto ----------
+  $("uploadMapBtn").onclick = () => $("mapFileInput").click();
+  $("mapFileInput").onchange = async (e) => {
     const file = e.target.files[0];
     if (!file) return;
     const dataUrl = await fileToDataURL(file, 1600);
     const field = currentZone === "voortuin" ? "mapImageVoortuin" : "mapImageAchtertuin";
     await setDoc(gardenDocRef, { [field]: dataUrl }, { merge: true });
-    toast("Plattegrond (" + currentZone + ") opgeslagen");
+    toast("Achtergrondfoto (" + currentZone + ") opgeslagen");
   };
 
-  function listenGardenMap() {
+  function listenGarden() {
     onSnapshot(gardenDocRef, snap => {
       gardenData = snap.data() || {};
-      applyAspectRatio();
+      applyDims();
       renderMapImage();
-      renderPins();
-      renderShapes();
+      renderGrid();
+      renderList();
     });
   }
 
   function renderMapImage() {
     const field = currentZone === "voortuin" ? "mapImageVoortuin" : "mapImageAchtertuin";
-    const img = document.getElementById("mapImg");
-    const empty = document.getElementById("mapEmpty");
-    if (gardenData && gardenData[field]) {
-      img.src = gardenData[field];
-      img.style.display = "block";
-    } else {
-      img.style.display = "none";
-    }
-    const hasContent = (gardenData[field]) || currentShapes().length ||
-      plants.some(p => (p.zone || "achtertuin") === currentZone);
-    empty.style.display = hasContent ? "none" : "flex";
+    const img = $("mapImg");
+    if (gardenData[field]) { img.src = gardenData[field]; img.style.display = "block"; }
+    else { img.style.display = "none"; }
   }
 
-  document.getElementById("mapWrap").addEventListener("click", (e) => {
-    if (Date.now() < suppressMapClickUntil) return; // click that ends a drag
-    if (drawMode === "move") return;
-    if (e.target.closest(".pin")) return; // existing pin click handled separately
-    if (e.target.closest(".shape-terras, .shape-border-outline, .shape-pad-outline")) return; // shape click handled separately
-    const rect = document.getElementById("mapWrap").getBoundingClientRect();
-    const x = ((e.clientX - rect.left) / rect.width) * 100;
-    const y = ((e.clientY - rect.top) / rect.height) * 100;
+  // ---------- Plantvakken ----------
+  function plantsInVak(zone, label) {
+    return plants.filter(p => plantZone(p) === zone && plantVak(p) === label)
+      .sort((a, b) => (a.name || "").localeCompare(b.name || "", "nl"));
+  }
 
-    if (drawMode === "plant") {
-      setPlacing(false);
-      updateDrawHint();
-      openPlantModal(null, x, y);
-    } else if (drawMode === "terras") {
-      if (!pendingRectCorner) {
-        pendingRectCorner = { x, y };
-        updateDrawHint();
-        renderShapes();
-      } else {
-        const rx = Math.min(pendingRectCorner.x, x), ry = Math.min(pendingRectCorner.y, y);
-        const rw = Math.abs(x - pendingRectCorner.x), rh = Math.abs(y - pendingRectCorner.y);
-        pendingRectCorner = null;
-        if (rw > 0.5 && rh > 0.5) {
-          openShapeModal({ mode: "create", type: "terras", rect: { x: rx, y: ry, w: rw, h: rh } });
-        }
-        updateDrawHint();
-        renderShapes();
+  function renderGrid() {
+    const grid = $("vakGrid");
+    const { w, cols, rows } = zoneGrid(currentZone);
+    grid.innerHTML = "";
+    grid.style.gridTemplateColumns = cols.map(m => `minmax(0, ${m}fr)`).join(" ");
+    grid.style.gridTemplateRows = rows.map(m => `minmax(58px, calc(100cqw * ${m} / ${w}))`).join(" ");
+    for (let r = 0; r < rows.length; r++) {
+      for (let c = 0; c < cols.length; c++) {
+        const label = vakLabel(c, r);
+        const inVak = plantsInVak(currentZone, label);
+        const cell = document.createElement("button");
+        cell.className = "vak" + (inVak.length ? " has-plants" : "");
+        cell.dataset.vak = label;
+        cell.title = `Vak ${label} — ${fmtM(cols[c])} × ${fmtM(rows[r])} m`;
+        let html = `<span class="vak-head"><span class="vak-label mono">${label}</span>${inVak.length ? `<span class="vak-count">${inVak.length}</span>` : ""}</span>`;
+        inVak.forEach(p => {
+          const st = monthStatus(p);
+          let cls = "vak-plant";
+          if (selectedMonth !== null) cls += (st.blooming || st.pruning) ? " lit" : " dim";
+          const dots = (st.blooming ? '<i class="dot bloom"></i>' : "") + (st.pruning ? '<i class="dot prune"></i>' : "");
+          html += `<span class="${cls}">${dots}${escapeHtml(p.name || "Naamloos")}</span>`;
+        });
+        cell.innerHTML = html;
+        cell.onclick = () => openVakModal(label);
+        grid.appendChild(cell);
       }
-    } else if (drawMode === "pad" || drawMode === "border") {
-      pendingLinePoints.push({ x, y });
-      updateDrawHint();
-      renderShapes();
     }
-  });
-
-  // ---------- Shapes (terras / border / pad) ----------
-  const SVG_NS = "http://www.w3.org/2000/svg";
-  function svgEl(tag, attrs) {
-    const el = document.createElementNS(SVG_NS, tag);
-    for (const k in attrs) el.setAttribute(k, attrs[k]);
-    return el;
-  }
-  // Drag support for pins and shapes. dx/dy are reported in % of the map.
-  function makeDraggable(el, { canDrag, onMove, onDrop, onTap }) {
-    el.addEventListener("pointerdown", (e) => {
-      if (e.button) return;
-      if (!canDrag()) return;
-      const rect = mapWrapEl.getBoundingClientRect();
-      const startX = e.clientX, startY = e.clientY;
-      let dragging = false;
-      e.preventDefault();
-      try { el.setPointerCapture(e.pointerId); } catch {}
-      const move = (ev) => {
-        const dxPx = ev.clientX - startX, dyPx = ev.clientY - startY;
-        if (!dragging) {
-          if (Math.hypot(dxPx, dyPx) < 7) return;
-          dragging = true;
-        }
-        onMove(dxPx / rect.width * 100, dyPx / rect.height * 100);
-      };
-      const end = (ev) => {
-        el.removeEventListener("pointermove", move);
-        el.removeEventListener("pointerup", end);
-        el.removeEventListener("pointercancel", end);
-        if (!dragging) return;
-        suppressMapClickUntil = Date.now() + 80;
-        onDrop(ev.type === "pointercancel");
-      };
-      el.addEventListener("pointermove", move);
-      el.addEventListener("pointerup", end);
-      el.addEventListener("pointercancel", end);
-    });
-    el.addEventListener("click", (e) => {
-      e.stopPropagation();
-      if (Date.now() < suppressMapClickUntil) return;
-      onTap();
-    });
-  }
-  function shapeBounds(s) {
-    if (s.type === "terras") return { minX: s.x, minY: s.y, maxX: s.x + s.w, maxY: s.y + s.h };
-    const xs = s.points.map(p => p.x), ys = s.points.map(p => p.y);
-    return { minX: Math.min(...xs), minY: Math.min(...ys), maxX: Math.max(...xs), maxY: Math.max(...ys) };
+    // Plants of this zone that are not in one of the vakken shown.
+    const labels = new Set(zoneVakLabels(currentZone));
+    const loose = plants.filter(p => plantZone(p) === currentZone && !labels.has(plantVak(p))).length;
+    const note = $("noVakNote");
+    note.style.display = loose ? "block" : "none";
+    note.textContent = loose === 1
+      ? "1 plant in deze tuin heeft nog geen vak — zie de lijst."
+      : `${loose} planten in deze tuin hebben nog geen vak — zie de lijst.`;
+    if (openVak && $("vakModalBackdrop").classList.contains("active")) fillVakModal();
   }
 
-  function renderShapes() {
-    const svg = document.getElementById("shapesSvg");
-    svg.innerHTML = "";
-    const { w: widthM, d: depthM } = currentDims();
-
-    // grid every 1m
-    for (let gx = 1; gx < widthM; gx++) {
-      const px = (gx / widthM) * 100;
-      svg.appendChild(svgEl("line", { x1: px, y1: 0, x2: px, y2: 100, class: "grid-line" }));
-    }
-    for (let gy = 1; gy < depthM; gy++) {
-      const py = (gy / depthM) * 100;
-      svg.appendChild(svgEl("line", { x1: 0, y1: py, x2: 100, y2: py, class: "grid-line" }));
-    }
-
-    currentShapes().forEach(s => {
-      const g = svgEl("g", {});
-      let hit = null;
-      if (s.type === "terras") {
-        hit = svgEl("rect", { x: s.x, y: s.y, width: s.w, height: s.h, class: "shape-terras" });
-        g.appendChild(hit);
-      } else if (s.type === "pad" || s.type === "border") {
-        const strokePct = ((s.widthM || DEFAULT_WIDTH_M[s.type]) / widthM) * 100;
-        const pts = s.points.map(p => `${p.x},${p.y}`).join(" ");
-        const outlineClass = s.type === "pad" ? "shape-pad-outline" : "shape-border-outline";
-        const lineClass = s.type === "pad" ? "shape-pad" : "shape-border";
-        const outline = svgEl("polyline", { points: pts, class: outlineClass, "stroke-width": strokePct + 0.7 });
-        const line = svgEl("polyline", { points: pts, class: lineClass, "stroke-width": strokePct });
-        g.appendChild(outline);
-        g.appendChild(line);
-        hit = outline;
-      }
-      if (!hit) return;
-      svg.appendChild(g);
-      const box = shapeBounds(s);
-      let d = { x: 0, y: 0 };
-      makeDraggable(hit, {
-        canDrag: () => drawMode === "move",
-        onMove: (dx, dy) => {
-          d = { x: clamp(dx, -box.minX, 100 - box.maxX), y: clamp(dy, -box.minY, 100 - box.maxY) };
-          g.setAttribute("transform", `translate(${d.x} ${d.y})`);
-        },
-        onDrop: async (cancelled) => {
-          if (cancelled) { renderShapes(); return; }
-          const patch = s.type === "terras"
-            ? { x: s.x + d.x, y: s.y + d.y }
-            : { points: s.points.map(p => ({ x: p.x + d.x, y: p.y + d.y })) };
-          try { await updateShape(s.id, patch); toast(SHAPE_LABEL[s.type] + " verplaatst"); }
-          catch (err) { toast("Verplaatsen mislukt: " + err.message); renderShapes(); }
-        },
-        onTap: () => openShapeModal({ mode: "edit", type: s.type, shapeId: s.id, shape: s }),
-      });
-    });
-
-    // live preview while drawing
-    if (pendingRectCorner) {
-      svg.appendChild(svgEl("circle", { cx: pendingRectCorner.x, cy: pendingRectCorner.y, r: 1, fill: "var(--ochre)" }));
-    }
-    if (pendingLinePoints.length) {
-      const pts = pendingLinePoints.map(p => `${p.x},${p.y}`).join(" ");
-      svg.appendChild(svgEl("polyline", { points: pts, class: "draw-preview" }));
-      pendingLinePoints.forEach(p => svg.appendChild(svgEl("circle", { cx: p.x, cy: p.y, r: 0.8, fill: "var(--ochre)" })));
-    }
+  function fillVakModal() {
+    const label = openVak;
+    const { cols, rows } = zoneGrid(currentZone);
+    const pos = parseVak(label);
+    $("vakModalTitle").textContent = `Vak ${label}`;
+    const size = pos && cols[pos.c] && rows[pos.r] ? ` · ${fmtM(cols[pos.c])} × ${fmtM(rows[pos.r])} m` : "";
+    $("vakModalSub").textContent = ZONE_LABEL[currentZone] + size;
+    const listEl = $("vakPlantList");
+    listEl.innerHTML = "";
+    const inVak = plantsInVak(currentZone, label);
+    $("vakEmpty").style.display = inVak.length ? "none" : "block";
+    inVak.forEach(p => listEl.appendChild(plantRow(p, () => { closeVakModal(); openPlantModal(p); })));
   }
+  function openVakModal(label) {
+    openVak = label;
+    fillVakModal();
+    $("vakModalBackdrop").classList.add("active");
+  }
+  function closeVakModal() {
+    $("vakModalBackdrop").classList.remove("active");
+    openVak = null;
+  }
+  $("closeVakModal").onclick = closeVakModal;
+  $("vakAddBtn").onclick = () => {
+    const preset = { zone: currentZone, vak: openVak };
+    closeVakModal();
+    openPlantModal(null, preset);
+  };
 
   // ---------- Month wheel ----------
-  const wheel = document.getElementById("wheel");
+  const wheel = $("wheel");
   MONTHS.forEach((m, i) => {
     const angle = (i / 12) * 2 * Math.PI - Math.PI / 2;
     const r = 78;
@@ -979,129 +780,144 @@
     el.textContent = m;
     el.style.left = x + "px";
     el.style.top = y + "px";
+    el.style.margin = "0";
     el.dataset.month = i;
     el.onclick = () => {
       selectedMonth = (selectedMonth === i) ? null : i;
       document.querySelectorAll(".wheel-month").forEach(w => w.classList.toggle("active", Number(w.dataset.month) === selectedMonth));
-      document.getElementById("wheelCenter").innerHTML = selectedMonth === null ? "Alle<br>planten" : m.toUpperCase();
-      renderPins();
+      $("wheelCenter").innerHTML = selectedMonth === null ? "Alle<br>planten" : m.toUpperCase();
+      renderGrid();
     };
     wheel.appendChild(el);
   });
 
-  // month <select> options used in the plant form
   function fillMonthSelect(sel, allowEmpty) {
     sel.innerHTML = "";
-    if (allowEmpty) {
-      const o = document.createElement("option");
-      o.value = ""; o.textContent = "\u2014 onbekend \u2014";
-      sel.appendChild(o);
-    }
-    MONTHS.forEach((m, i) => {
-      const o = document.createElement("option");
-      o.value = i; o.textContent = m;
-      sel.appendChild(o);
-    });
+    if (allowEmpty) sel.appendChild(new Option("— onbekend —", ""));
+    MONTHS.forEach((m, i) => sel.appendChild(new Option(m, i)));
   }
-  fillMonthSelect(document.getElementById("bloomStart"), true);
-  fillMonthSelect(document.getElementById("bloomEnd"), true);
-  fillMonthSelect(document.getElementById("pruneMonths"));
-  applyAspectRatio();
-  updateDrawHint();
+  fillMonthSelect($("bloomStart"), true);
+  fillMonthSelect($("bloomEnd"), true);
+  fillMonthSelect($("pruneMonths"));
+
+  // Soort
+  const catSel = $("plantCategory");
+  catSel.appendChild(new Option("— onbekend —", ""));
+  CATEGORIES.forEach(c => catSel.appendChild(new Option(c, c)));
+
+  function fillVakSelect(zone, selected) {
+    const sel = $("plantVak");
+    sel.innerHTML = "";
+    sel.appendChild(new Option("— geen vak —", ""));
+    const labels = zoneVakLabels(zone);
+    if (selected && !labels.includes(selected)) labels.push(selected);
+    labels.forEach(l => sel.appendChild(new Option(l, l)));
+    sel.value = selected || "";
+  }
+  $("plantZone").onchange = () => fillVakSelect($("plantZone").value, "");
+
+  applyDims();
+  renderGrid();
 
   // ---------- Plants: Firestore live sync ----------
   function listenPlants() {
     onSnapshot(plantsCol, snap => {
       plants = snap.docs.map(d => ({ id: d.id, ...d.data() }));
       renderList();
-      renderMapImage(); // hides the empty-map text once a plant exists
-      renderPins();
+      renderGrid();
     });
+  }
+
+  // ---------- Plantenlijst: zoeken en sorteren ----------
+  function vakSortParts(p) {
+    const pos = parseVak(plantVak(p));
+    return [ZONE_ORDER.indexOf(plantZone(p)), pos ? 0 : 1, pos ? pos.c : 0, pos ? pos.r : 0];
+  }
+  function compareBy(key) {
+    const byName = (a, b) => (a.name || "").localeCompare(b.name || "", "nl", { sensitivity: "base" });
+    if (key === "vak") return (a, b) => {
+      const x = vakSortParts(a), y = vakSortParts(b);
+      for (let i = 0; i < x.length; i++) if (x[i] !== y[i]) return x[i] - y[i];
+      return byName(a, b);
+    };
+    if (key === "soort") return (a, b) => {
+      const x = a.category || "", y = b.category || "";
+      if (x !== y) { if (!x) return 1; if (!y) return -1; return x.localeCompare(y, "nl"); }
+      return byName(a, b);
+    };
+    return byName;
+  }
+  function groupTitle(p) {
+    if (sortKey === "vak") return `${ZONE_LABEL[plantZone(p)]} · ${plantVak(p) ? "vak " + plantVak(p) : "geen vak"}`;
+    if (sortKey === "soort") return p.category || "Geen soort";
+    return null;
+  }
+  function vakBadge(p) {
+    const v = plantVak(p);
+    return v ? `<span class="badge in-vak">${ZONE_SHORT[plantZone(p)]} ${escapeHtml(v)}</span>`
+             : `<span class="badge none">${ZONE_SHORT[plantZone(p)]} · geen vak</span>`;
+  }
+  function plantRow(p, onClick) {
+    const row = document.createElement("div");
+    row.className = "plant-row";
+    row.innerHTML = `
+      <img class="plant-thumb" src="${p.photo || placeholderThumb()}" alt="">
+      <div class="info">
+        <div class="name">${escapeHtml(p.name || "Naamloos")}</div>
+        <div class="latin">${escapeHtml(p.latin || "")}</div>
+        <div class="meta">${vakBadge(p)}${p.category ? `<span class="badge">${escapeHtml(p.category)}</span>` : ""}${p.plantedDate ? `<span>geplant ${escapeHtml(p.plantedDate)}</span>` : ""}</div>
+      </div>`;
+    row.onclick = onClick;
+    return row;
   }
 
   function renderList() {
-    const q = document.getElementById("searchBox").value.toLowerCase();
-    const listEl = document.getElementById("plantList");
-    const filtered = plants.filter(p => (p.name || "").toLowerCase().includes(q) || (p.latin || "").toLowerCase().includes(q));
-    document.getElementById("plantCount").textContent = plants.length ? `(${plants.length})` : "";
-    document.getElementById("emptyList").style.display = filtered.length ? "none" : "block";
+    const q = $("searchBox").value.trim().toLowerCase();
+    const listEl = $("plantList");
+    const haystack = (p) => [p.name, p.latin, p.category, plantVak(p), ZONE_LABEL[plantZone(p)]].join(" ").toLowerCase();
+    const filtered = plants.filter(p => haystack(p).includes(q)).sort(compareBy(sortKey));
+    if (sortDir < 0) filtered.reverse();
+    $("plantCount").textContent = plants.length ? `(${plants.length})` : "";
+    $("emptyList").style.display = filtered.length ? "none" : "block";
+    $("emptyList").textContent = plants.length ? "Geen planten gevonden." : "Nog geen planten geregistreerd.";
     listEl.innerHTML = "";
+    const counts = {};
+    filtered.forEach(p => { const g = groupTitle(p); if (g) counts[g] = (counts[g] || 0) + 1; });
+    let lastGroup = null;
     filtered.forEach(p => {
-      const row = document.createElement("div");
-      row.className = "plant-row";
-      row.innerHTML = `
-        <img class="plant-thumb" src="${p.photo || placeholderThumb()}">
-        <div class="info">
-          <div class="name">${escapeHtml(p.name || "Naamloos")}</div>
-          <div class="latin">${escapeHtml(p.latin || "")}</div>
-          <div class="meta">${(p.zone === "voortuin" ? "voortuin" : "achtertuin")}${p.plantedDate ? " \u00b7 geplant " + p.plantedDate : ""}</div>
-        </div>`;
-      row.onclick = () => {
-        const zone = p.zone === "voortuin" ? "voortuin" : "achtertuin";
-        if (zone !== currentZone) {
-          currentZone = zone;
-          document.querySelectorAll(".zone-tab").forEach(b => b.classList.toggle("active", b.dataset.zone === zone));
-          setDrawMode("plant");
-          applyAspectRatio();
-          renderMapImage();
-          renderPins();
-          renderShapes();
-        }
-        openPlantModal(p);
-      };
-      listEl.appendChild(row);
-    });
-  }
-  document.getElementById("searchBox").oninput = renderList;
-
-  function renderPins() {
-    document.querySelectorAll(".pin").forEach(p => p.remove());
-    const wrap = document.getElementById("mapWrap");
-    plants.filter(p => (p.zone || "achtertuin") === currentZone).forEach(p => {
-      if (p.x == null || p.y == null) return;
-      const pin = document.createElement("div");
-      pin.className = "pin";
-      pin.style.left = p.x + "%";
-      pin.style.top = p.y + "%";
-      pin.title = p.name || "";
-      const status = monthStatus(p);
-      let color = "#2C4A3B";
-      if (status.blooming) color = "#D66B9E";
-      if (status.pruning) color = "#4B79A1";
-      pin.innerHTML = `<svg width="26" height="34" viewBox="0 0 26 34"><path d="M13 0C5.8 0 0 5.8 0 13c0 9.5 13 21 13 21s13-11.5 13-21C26 5.8 20.2 0 13 0z" fill="${color}" stroke="white" stroke-width="1.5"/><circle cx="13" cy="13" r="4.5" fill="white"/></svg>`;
-      if (selectedMonth !== null) {
-        pin.classList.add((status.blooming || status.pruning) ? "lit" : "dim");
+      const g = groupTitle(p);
+      if (g && g !== lastGroup) {
+        const h = document.createElement("div");
+        h.className = "group-head";
+        h.innerHTML = `<span>${escapeHtml(g)}</span><span class="mono">${counts[g]}</span>`;
+        listEl.appendChild(h);
+        lastGroup = g;
       }
-      let pos = { x: p.x, y: p.y };
-      makeDraggable(pin, {
-        canDrag: () => true,
-        onMove: (dx, dy) => {
-          pos = { x: clamp(p.x + dx, 0, 100), y: clamp(p.y + dy, 0, 100) };
-          pin.classList.add("dragging");
-          pin.style.left = pos.x + "%";
-          pin.style.top = pos.y + "%";
-        },
-        onDrop: async (cancelled) => {
-          pin.classList.remove("dragging");
-          if (cancelled) { renderPins(); return; }
-          try { await updateDoc(doc(plantsCol, p.id), pos); toast("Plant verplaatst"); }
-          catch (err) { toast("Verplaatsen mislukt: " + err.message); renderPins(); }
-        },
-        onTap: () => openPlantModal(p),
-      });
-      wrap.appendChild(pin);
+      listEl.appendChild(plantRow(p, () => openPlantModal(p)));
+    });
+    document.querySelectorAll(".sort-btn").forEach(b => {
+      const on = b.dataset.sort === sortKey;
+      b.classList.toggle("active", on);
+      b.setAttribute("aria-pressed", on ? "true" : "false");
+      b.textContent = b.dataset.label + (on ? (sortDir > 0 ? " ↑" : " ↓") : "");
     });
   }
+  document.querySelectorAll(".sort-btn").forEach(b => {
+    b.dataset.label = b.textContent;
+    b.onclick = () => {
+      if (sortKey === b.dataset.sort) sortDir = -sortDir;
+      else { sortKey = b.dataset.sort; sortDir = 1; }
+      renderList();
+    };
+  });
+  $("searchBox").oninput = renderList;
+  renderList();
 
   function monthStatus(p) {
     let blooming = false, pruning = false;
     if (selectedMonth !== null) {
-      if (p.bloomStart != null && p.bloomEnd != null) {
-        blooming = monthInRange(selectedMonth, p.bloomStart, p.bloomEnd);
-      }
-      if (Array.isArray(p.pruneMonths)) {
-        pruning = p.pruneMonths.includes(selectedMonth);
-      }
+      if (p.bloomStart != null && p.bloomEnd != null) blooming = monthInRange(selectedMonth, p.bloomStart, p.bloomEnd);
+      if (Array.isArray(p.pruneMonths)) pruning = p.pruneMonths.includes(selectedMonth);
     }
     return { blooming, pruning };
   }
@@ -1112,112 +928,110 @@
   }
 
   // ---------- Plant modal ----------
-  function openPlantModal(plant, x, y) {
+  function openPlantModal(plant, preset) {
     currentEditId = plant ? plant.id : null;
-    currentLat = plant ? plant.x : x;
-    currentLng = plant ? plant.y : y;
-    document.getElementById("plantModalTitle").textContent = plant ? "Plant bewerken" : "Nieuwe plant";
-    document.getElementById("plantName").value = plant?.name || "";
-    document.getElementById("plantLatin").value = plant?.latin || "";
-    document.getElementById("plantDate").value = plant?.plantedDate || "";
-    document.getElementById("plantLocationNote").value = plant?.locationNote || "";
-    document.getElementById("plantSoil").value = plant?.soil || "";
-    document.getElementById("plantSun").value = plant?.sun || "";
-    document.getElementById("plantFertilizing").value = plant?.fertilizing || "";
-    document.getElementById("plantPruning").value = plant?.pruningAdvice || "";
-    document.getElementById("bloomStart").value = plant?.bloomStart ?? "";
-    document.getElementById("bloomEnd").value = plant?.bloomEnd ?? "";
-    const pm = document.getElementById("pruneMonths");
-    Array.from(pm.options).forEach(o => o.selected = (plant?.pruneMonths || []).includes(Number(o.value)));
-    const preview = document.getElementById("plantPhotoPreview");
-    if (plant?.photo) { preview.src = plant.photo; preview.style.display = "block"; } else { preview.style.display = "none"; }
-    document.getElementById("plantPhotoInput").value = "";
-    document.getElementById("idPhotoInput").value = "";
-    document.getElementById("idPreview").style.display = "none";
-    document.getElementById("idResults").innerHTML = "";
-    document.getElementById("idStatus").textContent = "";
-    document.getElementById("deletePlantBtn").style.display = plant ? "inline-block" : "none";
-    document.getElementById("plantModalBackdrop").classList.add("active");
+    const zone = plant ? plantZone(plant) : (preset?.zone || currentZone);
+    const vak = plant ? plantVak(plant) : (preset?.vak || "");
+    $("plantModalTitle").textContent = plant ? "Plant bewerken" : "Nieuwe plant";
+    $("plantName").value = plant?.name || "";
+    $("plantLatin").value = plant?.latin || "";
+    $("plantZone").value = zone;
+    fillVakSelect(zone, vak);
+    $("plantCategory").value = CATEGORIES.includes(plant?.category) ? plant.category : "";
+    $("plantDate").value = plant?.plantedDate || "";
+    $("plantLocationNote").value = plant?.locationNote || "";
+    $("plantSoil").value = plant?.soil || "";
+    $("plantSun").value = plant?.sun || "";
+    $("plantFertilizing").value = plant?.fertilizing || "";
+    $("plantPruning").value = plant?.pruningAdvice || "";
+    $("bloomStart").value = plant?.bloomStart ?? "";
+    $("bloomEnd").value = plant?.bloomEnd ?? "";
+    Array.from($("pruneMonths").options).forEach(o => o.selected = (plant?.pruneMonths || []).includes(Number(o.value)));
+    const preview = $("plantPhotoPreview");
+    if (plant?.photo) { preview.src = plant.photo; preview.style.display = "block"; } else { preview.removeAttribute("src"); preview.style.display = "none"; }
+    $("plantPhotoInput").value = "";
+    $("idPhotoInput").value = "";
+    idPhotoDataUrl = null;
+    $("idPreview").style.display = "none";
+    $("idResults").innerHTML = "";
+    $("idStatus").textContent = "";
+    $("deletePlantBtn").style.display = plant ? "inline-block" : "none";
+    $("plantModalBackdrop").classList.add("active");
   }
-  document.getElementById("closePlantModal").onclick = () => document.getElementById("plantModalBackdrop").classList.remove("active");
-  document.getElementById("cancelPlantBtn").onclick = () => document.getElementById("plantModalBackdrop").classList.remove("active");
-  document.getElementById("addPlantBtn").onclick = () => {
-    setDrawMode("plant");
-    setPlacing(true);
-    updateDrawHint();
-    mapWrapEl.scrollIntoView({ behavior: "smooth", block: "center" });
-  };
+  const closePlantModal = () => $("plantModalBackdrop").classList.remove("active");
+  $("closePlantModal").onclick = closePlantModal;
+  $("cancelPlantBtn").onclick = closePlantModal;
+  $("addPlantBtn").onclick = () => openPlantModal(null);
 
-  document.getElementById("plantPhotoInput").onchange = async (e) => {
+  $("plantPhotoInput").onchange = async (e) => {
     const file = e.target.files[0];
     if (!file) return;
     const dataUrl = await fileToDataURL(file, 500);
-    document.getElementById("plantPhotoPreview").src = dataUrl;
-    document.getElementById("plantPhotoPreview").style.display = "block";
+    $("plantPhotoPreview").src = dataUrl;
+    $("plantPhotoPreview").style.display = "block";
   };
 
-  document.getElementById("savePlantBtn").onclick = async () => {
-    if (currentLat == null || currentLng == null) { toast("Geen plek op de plattegrond gekozen"); return; }
-    const pm = Array.from(document.getElementById("pruneMonths").selectedOptions).map(o => Number(o.value));
+  $("savePlantBtn").onclick = async () => {
+    const name = $("plantName").value.trim();
+    if (!name) { toast("Vul een naam in"); $("plantName").focus(); return; }
+    const pm = Array.from($("pruneMonths").selectedOptions).map(o => Number(o.value));
     // Bloom period stays empty (null) unless chosen; one month chosen = that single month.
-    const bsRaw = document.getElementById("bloomStart").value, beRaw = document.getElementById("bloomEnd").value;
+    const bsRaw = $("bloomStart").value, beRaw = $("bloomEnd").value;
     let bloomStart = bsRaw === "" ? null : Number(bsRaw);
     let bloomEnd = beRaw === "" ? null : Number(beRaw);
     if (bloomStart === null) bloomStart = bloomEnd;
     if (bloomEnd === null) bloomEnd = bloomStart;
     const data = {
-      name: document.getElementById("plantName").value.trim(),
-      latin: document.getElementById("plantLatin").value.trim(),
-      plantedDate: document.getElementById("plantDate").value,
-      locationNote: document.getElementById("plantLocationNote").value.trim(),
-      soil: document.getElementById("plantSoil").value,
-      sun: document.getElementById("plantSun").value,
-      fertilizing: document.getElementById("plantFertilizing").value.trim(),
-      pruningAdvice: document.getElementById("plantPruning").value.trim(),
+      name,
+      latin: $("plantLatin").value.trim(),
+      zone: $("plantZone").value,
+      vak: $("plantVak").value,
+      category: $("plantCategory").value,
+      plantedDate: $("plantDate").value,
+      locationNote: $("plantLocationNote").value.trim(),
+      soil: $("plantSoil").value,
+      sun: $("plantSun").value,
+      fertilizing: $("plantFertilizing").value.trim(),
+      pruningAdvice: $("plantPruning").value.trim(),
       bloomStart, bloomEnd,
       pruneMonths: pm,
-      x: currentLat, y: currentLng,
-      zone: currentEditId ? (plants.find(p => p.id === currentEditId)?.zone || currentZone) : currentZone,
     };
-    const photoPreview = document.getElementById("plantPhotoPreview");
-    if (photoPreview.style.display !== "none") data.photo = photoPreview.src;
+    const photoPreview = $("plantPhotoPreview");
+    if (photoPreview.style.display !== "none" && photoPreview.getAttribute("src")) data.photo = photoPreview.src;
 
     try {
-      if (currentEditId) {
-        await updateDoc(doc(plantsCol, currentEditId), data);
-      } else {
-        await addDoc(plantsCol, data);
-      }
-      document.getElementById("plantModalBackdrop").classList.remove("active");
+      if (currentEditId) await updateDoc(doc(plantsCol, currentEditId), data);
+      else await addDoc(plantsCol, data);
+      closePlantModal();
       toast("Plant opgeslagen");
     } catch (err) { toast("Opslaan mislukt: " + err.message); }
   };
 
-  document.getElementById("deletePlantBtn").onclick = async () => {
+  $("deletePlantBtn").onclick = async () => {
     if (!currentEditId) return;
     if (!confirm("Deze plant verwijderen?")) return;
     await deleteDoc(doc(plantsCol, currentEditId));
-    document.getElementById("plantModalBackdrop").classList.remove("active");
+    closePlantModal();
     toast("Plant verwijderd");
   };
 
-  // ---------- Pl@ntNet identification ----------
+  // ---------- Pl@ntNet / ObsIdentify identification ----------
   let idPhotoDataUrl = null;
-  document.getElementById("idPhotoInput").onchange = async (e) => {
+  $("idPhotoInput").onchange = async (e) => {
     const file = e.target.files[0];
     if (!file) return;
     idPhotoDataUrl = await fileToDataURL(file, 900);
-    const preview = document.getElementById("idPreview");
+    const preview = $("idPreview");
     preview.src = idPhotoDataUrl;
     preview.style.display = "block";
   };
 
   function adoptSuggestion(latin, common) {
-    document.getElementById("plantLatin").value = latin;
-    document.getElementById("plantName").value = common || latin;
-    if (!document.getElementById("plantPhotoPreview").src || document.getElementById("plantPhotoPreview").style.display === "none") {
-      document.getElementById("plantPhotoPreview").src = idPhotoDataUrl;
-      document.getElementById("plantPhotoPreview").style.display = "block";
+    $("plantLatin").value = latin;
+    $("plantName").value = common || latin;
+    if ($("plantPhotoPreview").style.display === "none") {
+      $("plantPhotoPreview").src = idPhotoDataUrl;
+      $("plantPhotoPreview").style.display = "block";
     }
     toast("Naam overgenomen");
   }
@@ -1246,7 +1060,7 @@
 
   async function identifyWithPlantNet(statusEl, container) {
     const key = localStorage.getItem("plantnetApiKey");
-    if (!key) { toast("Vul eerst je Pl@ntNet API-key in bij Instellingen"); return; }
+    if (!key) { statusEl.textContent = ""; toast("Vul eerst je Pl@ntNet API-key in bij Instellingen"); return; }
     const blob = await (await fetch(idPhotoDataUrl)).blob();
     const form = new FormData();
     form.append("images", blob, "photo.jpg");
@@ -1287,19 +1101,16 @@
     statusEl.textContent = "Kies de juiste soort:";
   }
 
-  document.getElementById("identifyBtn").onclick = async () => {
+  $("identifyBtn").onclick = async () => {
     if (!idPhotoDataUrl) { toast("Kies eerst een foto"); return; }
-    const source = document.getElementById("idSource").value;
-    const statusEl = document.getElementById("idStatus");
-    const container = document.getElementById("idResults");
+    const source = $("idSource").value;
+    const statusEl = $("idStatus");
+    const container = $("idResults");
     statusEl.textContent = "Bezig met herkennen...";
     container.innerHTML = "";
     try {
-      if (source === "obsidentify") {
-        await identifyWithObsIdentify(statusEl, container);
-      } else {
-        await identifyWithPlantNet(statusEl, container);
-      }
+      if (source === "obsidentify") await identifyWithObsIdentify(statusEl, container);
+      else await identifyWithPlantNet(statusEl, container);
     } catch (err) {
       statusEl.textContent = "Herkennen mislukt: " + err.message;
     }
@@ -1330,10 +1141,10 @@
     });
   }
   function escapeHtml(s) { return (s || "").replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c])); }
-  function placeholderThumb() { return "data:image/svg+xml;utf8," + encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" width="44" height="44"><rect width="44" height="44" fill="%23F0EBDD"/><text x="22" y="27" font-size="20" text-anchor="middle">🌱</text></svg>'); }
+  function placeholderThumb() { return "data:image/svg+xml;utf8," + encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" width="44" height="44"><rect width="44" height="44" fill="#F0EBDD"/><text x="22" y="27" font-size="20" text-anchor="middle">🌱</text></svg>'); }
 </script>
 <script>
-  // fix-1: installeerbare app
+  // fix-2: installeerbare app
   if ("serviceWorker" in navigator) {
     window.addEventListener("load", () => navigator.serviceWorker.register("./sw.js").catch(() => {}));
   }
