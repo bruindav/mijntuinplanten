@@ -3,7 +3,16 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
+<!-- fix-1 -->
 <title>Mijn Tuin — Plantenregister</title>
+<meta name="theme-color" content="#2C4A3B">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" type="image/svg+xml" href="icons/icon.svg">
+<link rel="icon" type="image/png" sizes="192x192" href="icons/icon-192.png">
+<link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Mijn Tuin">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600&family=Public+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
 <style>
@@ -275,6 +284,18 @@
     font-size:0.85rem;z-index:200;opacity:0;pointer-events:none;transition:opacity .2s ease;
   }
   .toast.show{opacity:1;}
+
+  /* fix-1: verplaatsen, plek kiezen, versie */
+  .shape-border,.shape-pad{pointer-events:none;}
+  .pin{touch-action:none;}
+  .pin.dragging{transition:none;transform:translate(-50%,-100%) scale(1.3);cursor:grabbing;z-index:5;}
+  #mapWrap.move-mode{cursor:default;}
+  #mapWrap.move-mode .pin{cursor:grab;}
+  #mapWrap.move-mode .shape-terras,
+  #mapWrap.move-mode .shape-border-outline,
+  #mapWrap.move-mode .shape-pad-outline{cursor:grab;touch-action:none;}
+  #mapWrap.placing{box-shadow:0 0 0 3px var(--ochre);}
+  .app-version{text-align:center;font-size:0.68rem;color:#8a8a78;padding:14px 0 22px;}
 </style>
 </head>
 <body>
@@ -294,7 +315,6 @@
   <h2 class="display">Welkom in je tuinregister</h2>
   <p>Log in om je plattegrond te bekijken en planten te registreren. Iedereen die inlogt deelt dezelfde tuin-data.</p>
   <button class="btn-primary" id="signInBtn">Inloggen met Google</button>
-  <p style="margin-top:16px;font-size:0.75rem;">⚠️ Vul eerst je Firebase-config in <span class="mono">firebase-config.js</span> — zie README.</p>
 </div>
 
 <main id="mainView">
@@ -326,6 +346,7 @@
         <button class="mode-btn" data-mode="terras" id="modeTerras">◻ Terras</button>
         <button class="mode-btn" data-mode="border" id="modeBorder">〰 Border</button>
         <button class="mode-btn" data-mode="pad" id="modePad">〜 Pad</button>
+        <button class="mode-btn" data-mode="move" id="modeMove">✋ Verplaats</button>
       </div>
       <div class="draw-hint" id="drawHint"></div>
 
@@ -471,6 +492,10 @@
       <label>Breedte (m)</label>
       <input type="number" id="shapeWidthInput" min="0.1" step="0.1">
     </div>
+    <div class="field-row" id="shapeSizeFields">
+      <div class="field"><label>Breedte (m)</label><input type="number" id="shapeRectW" min="0.1" step="0.1"></div>
+      <div class="field"><label>Diepte (m)</label><input type="number" id="shapeRectD" min="0.1" step="0.1"></div>
+    </div>
     <div class="modal-actions">
       <button class="btn-danger" id="shapeDeleteBtn" style="display:none;">Verwijderen</button>
       <div style="flex:1;"></div>
@@ -479,6 +504,8 @@
     </div>
   </div>
 </div>
+
+<footer class="app-version mono">versie fix-1</footer>
 
 <div class="toast" id="toast"></div>
 
@@ -515,6 +542,11 @@
   let pendingLinePoints = [];   // [{x,y}, ...] in % while placing a pad/border
   let shapeModalCtx = null;     // { mode:'create'|'edit', type, points/rect, shapeId }
   const DEFAULT_WIDTH_M = { pad: 0.8, border: 0.3 };
+  let placingPlant = false;        // true after "+ Plant toevoegen", until a spot is tapped
+  let suppressMapClickUntil = 0;   // ignore the click that follows a drag
+  const mapWrapEl = document.getElementById("mapWrap");
+  const clamp = (v, lo, hi) => Math.min(Math.max(v, lo), hi);
+  const round2 = (v) => Math.round(v * 100) / 100;
 
   const DEFAULT_DIMS = {
     voortuin:   { w: 5.5, d: 3   },
@@ -554,9 +586,16 @@
     terras: "Tik twee hoekpunten van het terras aan.",
     border: "Tik de punten van de border aan, sluit af met \u2018Klaar\u2019.",
     pad: "Tik de punten van het pad aan, sluit af met \u2018Klaar\u2019.",
+    move: "Sleep een plant, terras, border of pad naar de nieuwe plek. Planten kun je altijd verslepen.",
   };
+  function setPlacing(on) {
+    placingPlant = on;
+    mapWrapEl.classList.toggle("placing", on);
+  }
   function setDrawMode(mode) {
     drawMode = mode;
+    setPlacing(false);
+    mapWrapEl.classList.toggle("move-mode", mode === "move");
     pendingRectCorner = null;
     pendingLinePoints = [];
     document.querySelectorAll(".mode-btn").forEach(b => b.classList.toggle("active", b.dataset.mode === mode));
@@ -569,9 +608,17 @@
     if ((drawMode === "pad" || drawMode === "border") && pendingLinePoints.length) {
       text += ` (${pendingLinePoints.length} punt${pendingLinePoints.length === 1 ? "" : "en"})`;
     }
+    if (drawMode === "plant" && placingPlant) text = "Tik op de plattegrond op de plek van de nieuwe plant.";
     if (!text) { hint.classList.remove("show"); hint.innerHTML = ""; return; }
     hint.classList.add("show");
     hint.innerHTML = escapeHtml(text);
+    if (drawMode === "plant" && placingPlant) {
+      const cancelBtn = document.createElement("button");
+      cancelBtn.className = "btn-outline";
+      cancelBtn.textContent = "Annuleer";
+      cancelBtn.onclick = (e) => { e.stopPropagation(); setPlacing(false); updateDrawHint(); };
+      hint.appendChild(cancelBtn);
+    }
     if ((drawMode === "pad" || drawMode === "border") && pendingLinePoints.length >= 2) {
       const btn = document.createElement("button");
       btn.className = "btn-primary";
@@ -615,12 +662,29 @@
 
   // ---------- Shape create/edit modal (pad, border, terras) ----------
   const SHAPE_LABEL = { pad: "Pad", border: "Border", terras: "Terras" };
+  const NEW_SHAPE_LABEL = { pad: "Nieuw pad", border: "Nieuwe border", terras: "Nieuw terras" };
+  // Terras size from the metre inputs, kept inside the map.
+  function rectFromInputs(r) {
+    const { w: widthM, d: depthM } = currentDims();
+    const wm = parseFloat(document.getElementById("shapeRectW").value);
+    const dm = parseFloat(document.getElementById("shapeRectD").value);
+    const w = wm > 0 ? Math.min(wm / widthM * 100, 100) : r.w;
+    const h = dm > 0 ? Math.min(dm / depthM * 100, 100) : r.h;
+    return { x: clamp(r.x, 0, 100 - w), y: clamp(r.y, 0, 100 - h), w, h };
+  }
   function openShapeModal(ctx) {
     shapeModalCtx = ctx;
     const isLine = ctx.type === "pad" || ctx.type === "border";
     document.getElementById("shapeModalTitle").textContent =
-      (ctx.mode === "create" ? "Nieuw" : "") + " " + SHAPE_LABEL[ctx.type].toLowerCase();
+      ctx.mode === "create" ? NEW_SHAPE_LABEL[ctx.type] : SHAPE_LABEL[ctx.type];
     document.getElementById("shapeWidthField").style.display = isLine ? "block" : "none";
+    document.getElementById("shapeSizeFields").style.display = isLine ? "none" : "grid";
+    if (!isLine) {
+      const r = ctx.mode === "edit" ? ctx.shape : ctx.rect;
+      const { w: widthM, d: depthM } = currentDims();
+      document.getElementById("shapeRectW").value = round2(r.w / 100 * widthM);
+      document.getElementById("shapeRectD").value = round2(r.h / 100 * depthM);
+    }
     if (isLine) {
       const existingWidth = ctx.mode === "edit" ? ctx.shape.widthM : DEFAULT_WIDTH_M[ctx.type];
       document.getElementById("shapeWidthInput").value = existingWidth;
@@ -642,11 +706,11 @@
     if (shapeModalCtx.mode === "create") {
       const shape = isLine
         ? { type: shapeModalCtx.type, points: shapeModalCtx.points, widthM }
-        : { type: "terras", ...shapeModalCtx.rect };
+        : { type: "terras", ...rectFromInputs(shapeModalCtx.rect) };
       await addShape(shape);
       pendingLinePoints = []; pendingRectCorner = null;
     } else {
-      await updateShape(shapeModalCtx.shapeId, isLine ? { widthM } : {});
+      await updateShape(shapeModalCtx.shapeId, isLine ? { widthM } : rectFromInputs(shapeModalCtx.shape));
     }
     document.getElementById("shapeModalBackdrop").classList.remove("active");
     shapeModalCtx = null;
@@ -755,6 +819,8 @@
   }
 
   document.getElementById("mapWrap").addEventListener("click", (e) => {
+    if (Date.now() < suppressMapClickUntil) return; // click that ends a drag
+    if (drawMode === "move") return;
     if (e.target.closest(".pin")) return; // existing pin click handled separately
     if (e.target.closest(".shape-terras, .shape-border-outline, .shape-pad-outline")) return; // shape click handled separately
     const rect = document.getElementById("mapWrap").getBoundingClientRect();
@@ -762,6 +828,8 @@
     const y = ((e.clientY - rect.top) / rect.height) * 100;
 
     if (drawMode === "plant") {
+      setPlacing(false);
+      updateDrawHint();
       openPlantModal(null, x, y);
     } else if (drawMode === "terras") {
       if (!pendingRectCorner) {
@@ -792,6 +860,48 @@
     for (const k in attrs) el.setAttribute(k, attrs[k]);
     return el;
   }
+  // Drag support for pins and shapes. dx/dy are reported in % of the map.
+  function makeDraggable(el, { canDrag, onMove, onDrop, onTap }) {
+    el.addEventListener("pointerdown", (e) => {
+      if (e.button) return;
+      if (!canDrag()) return;
+      const rect = mapWrapEl.getBoundingClientRect();
+      const startX = e.clientX, startY = e.clientY;
+      let dragging = false;
+      e.preventDefault();
+      try { el.setPointerCapture(e.pointerId); } catch {}
+      const move = (ev) => {
+        const dxPx = ev.clientX - startX, dyPx = ev.clientY - startY;
+        if (!dragging) {
+          if (Math.hypot(dxPx, dyPx) < 7) return;
+          dragging = true;
+        }
+        onMove(dxPx / rect.width * 100, dyPx / rect.height * 100);
+      };
+      const end = (ev) => {
+        el.removeEventListener("pointermove", move);
+        el.removeEventListener("pointerup", end);
+        el.removeEventListener("pointercancel", end);
+        if (!dragging) return;
+        suppressMapClickUntil = Date.now() + 80;
+        onDrop(ev.type === "pointercancel");
+      };
+      el.addEventListener("pointermove", move);
+      el.addEventListener("pointerup", end);
+      el.addEventListener("pointercancel", end);
+    });
+    el.addEventListener("click", (e) => {
+      e.stopPropagation();
+      if (Date.now() < suppressMapClickUntil) return;
+      onTap();
+    });
+  }
+  function shapeBounds(s) {
+    if (s.type === "terras") return { minX: s.x, minY: s.y, maxX: s.x + s.w, maxY: s.y + s.h };
+    const xs = s.points.map(p => p.x), ys = s.points.map(p => p.y);
+    return { minX: Math.min(...xs), minY: Math.min(...ys), maxX: Math.max(...xs), maxY: Math.max(...ys) };
+  }
+
   function renderShapes() {
     const svg = document.getElementById("shapesSvg");
     svg.innerHTML = "";
@@ -808,10 +918,11 @@
     }
 
     currentShapes().forEach(s => {
+      const g = svgEl("g", {});
+      let hit = null;
       if (s.type === "terras") {
-        const r = svgEl("rect", { x: s.x, y: s.y, width: s.w, height: s.h, class: "shape-terras" });
-        r.addEventListener("click", (e) => { e.stopPropagation(); openShapeModal({ mode: "edit", type: "terras", shapeId: s.id, shape: s }); });
-        svg.appendChild(r);
+        hit = svgEl("rect", { x: s.x, y: s.y, width: s.w, height: s.h, class: "shape-terras" });
+        g.appendChild(hit);
       } else if (s.type === "pad" || s.type === "border") {
         const strokePct = ((s.widthM || DEFAULT_WIDTH_M[s.type]) / widthM) * 100;
         const pts = s.points.map(p => `${p.x},${p.y}`).join(" ");
@@ -819,10 +930,30 @@
         const lineClass = s.type === "pad" ? "shape-pad" : "shape-border";
         const outline = svgEl("polyline", { points: pts, class: outlineClass, "stroke-width": strokePct + 0.7 });
         const line = svgEl("polyline", { points: pts, class: lineClass, "stroke-width": strokePct });
-        outline.addEventListener("click", (e) => { e.stopPropagation(); openShapeModal({ mode: "edit", type: s.type, shapeId: s.id, shape: s }); });
-        svg.appendChild(outline);
-        svg.appendChild(line);
+        g.appendChild(outline);
+        g.appendChild(line);
+        hit = outline;
       }
+      if (!hit) return;
+      svg.appendChild(g);
+      const box = shapeBounds(s);
+      let d = { x: 0, y: 0 };
+      makeDraggable(hit, {
+        canDrag: () => drawMode === "move",
+        onMove: (dx, dy) => {
+          d = { x: clamp(dx, -box.minX, 100 - box.maxX), y: clamp(dy, -box.minY, 100 - box.maxY) };
+          g.setAttribute("transform", `translate(${d.x} ${d.y})`);
+        },
+        onDrop: async (cancelled) => {
+          if (cancelled) { renderShapes(); return; }
+          const patch = s.type === "terras"
+            ? { x: s.x + d.x, y: s.y + d.y }
+            : { points: s.points.map(p => ({ x: p.x + d.x, y: p.y + d.y })) };
+          try { await updateShape(s.id, patch); toast(SHAPE_LABEL[s.type] + " verplaatst"); }
+          catch (err) { toast("Verplaatsen mislukt: " + err.message); renderShapes(); }
+        },
+        onTap: () => openShapeModal({ mode: "edit", type: s.type, shapeId: s.id, shape: s }),
+      });
     });
 
     // live preview while drawing
@@ -859,16 +990,21 @@
   });
 
   // month <select> options used in the plant form
-  function fillMonthSelect(sel, multiple) {
+  function fillMonthSelect(sel, allowEmpty) {
     sel.innerHTML = "";
+    if (allowEmpty) {
+      const o = document.createElement("option");
+      o.value = ""; o.textContent = "\u2014 onbekend \u2014";
+      sel.appendChild(o);
+    }
     MONTHS.forEach((m, i) => {
       const o = document.createElement("option");
       o.value = i; o.textContent = m;
       sel.appendChild(o);
     });
   }
-  fillMonthSelect(document.getElementById("bloomStart"));
-  fillMonthSelect(document.getElementById("bloomEnd"));
+  fillMonthSelect(document.getElementById("bloomStart"), true);
+  fillMonthSelect(document.getElementById("bloomEnd"), true);
   fillMonthSelect(document.getElementById("pruneMonths"));
   applyAspectRatio();
   updateDrawHint();
@@ -878,6 +1014,7 @@
     onSnapshot(plantsCol, snap => {
       plants = snap.docs.map(d => ({ id: d.id, ...d.data() }));
       renderList();
+      renderMapImage(); // hides the empty-map text once a plant exists
       renderPins();
     });
   }
@@ -935,7 +1072,23 @@
       if (selectedMonth !== null) {
         pin.classList.add((status.blooming || status.pruning) ? "lit" : "dim");
       }
-      pin.onclick = (e) => { e.stopPropagation(); openPlantModal(p); };
+      let pos = { x: p.x, y: p.y };
+      makeDraggable(pin, {
+        canDrag: () => true,
+        onMove: (dx, dy) => {
+          pos = { x: clamp(p.x + dx, 0, 100), y: clamp(p.y + dy, 0, 100) };
+          pin.classList.add("dragging");
+          pin.style.left = pos.x + "%";
+          pin.style.top = pos.y + "%";
+        },
+        onDrop: async (cancelled) => {
+          pin.classList.remove("dragging");
+          if (cancelled) { renderPins(); return; }
+          try { await updateDoc(doc(plantsCol, p.id), pos); toast("Plant verplaatst"); }
+          catch (err) { toast("Verplaatsen mislukt: " + err.message); renderPins(); }
+        },
+        onTap: () => openPlantModal(p),
+      });
       wrap.appendChild(pin);
     });
   }
@@ -972,8 +1125,8 @@
     document.getElementById("plantSun").value = plant?.sun || "";
     document.getElementById("plantFertilizing").value = plant?.fertilizing || "";
     document.getElementById("plantPruning").value = plant?.pruningAdvice || "";
-    document.getElementById("bloomStart").value = plant?.bloomStart ?? 3;
-    document.getElementById("bloomEnd").value = plant?.bloomEnd ?? 5;
+    document.getElementById("bloomStart").value = plant?.bloomStart ?? "";
+    document.getElementById("bloomEnd").value = plant?.bloomEnd ?? "";
     const pm = document.getElementById("pruneMonths");
     Array.from(pm.options).forEach(o => o.selected = (plant?.pruneMonths || []).includes(Number(o.value)));
     const preview = document.getElementById("plantPhotoPreview");
@@ -990,7 +1143,9 @@
   document.getElementById("cancelPlantBtn").onclick = () => document.getElementById("plantModalBackdrop").classList.remove("active");
   document.getElementById("addPlantBtn").onclick = () => {
     setDrawMode("plant");
-    toast("Klik op de plattegrond om de plek te kiezen");
+    setPlacing(true);
+    updateDrawHint();
+    mapWrapEl.scrollIntoView({ behavior: "smooth", block: "center" });
   };
 
   document.getElementById("plantPhotoInput").onchange = async (e) => {
@@ -1004,6 +1159,12 @@
   document.getElementById("savePlantBtn").onclick = async () => {
     if (currentLat == null || currentLng == null) { toast("Geen plek op de plattegrond gekozen"); return; }
     const pm = Array.from(document.getElementById("pruneMonths").selectedOptions).map(o => Number(o.value));
+    // Bloom period stays empty (null) unless chosen; one month chosen = that single month.
+    const bsRaw = document.getElementById("bloomStart").value, beRaw = document.getElementById("bloomEnd").value;
+    let bloomStart = bsRaw === "" ? null : Number(bsRaw);
+    let bloomEnd = beRaw === "" ? null : Number(beRaw);
+    if (bloomStart === null) bloomStart = bloomEnd;
+    if (bloomEnd === null) bloomEnd = bloomStart;
     const data = {
       name: document.getElementById("plantName").value.trim(),
       latin: document.getElementById("plantLatin").value.trim(),
@@ -1013,8 +1174,7 @@
       sun: document.getElementById("plantSun").value,
       fertilizing: document.getElementById("plantFertilizing").value.trim(),
       pruningAdvice: document.getElementById("plantPruning").value.trim(),
-      bloomStart: Number(document.getElementById("bloomStart").value),
-      bloomEnd: Number(document.getElementById("bloomEnd").value),
+      bloomStart, bloomEnd,
       pruneMonths: pm,
       x: currentLat, y: currentLng,
       zone: currentEditId ? (plants.find(p => p.id === currentEditId)?.zone || currentZone) : currentZone,
@@ -1171,6 +1331,12 @@
   }
   function escapeHtml(s) { return (s || "").replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c])); }
   function placeholderThumb() { return "data:image/svg+xml;utf8," + encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" width="44" height="44"><rect width="44" height="44" fill="%23F0EBDD"/><text x="22" y="27" font-size="20" text-anchor="middle">🌱</text></svg>'); }
+</script>
+<script>
+  // fix-1: installeerbare app
+  if ("serviceWorker" in navigator) {
+    window.addEventListener("load", () => navigator.serviceWorker.register("./sw.js").catch(() => {}));
+  }
 </script>
 </body>
 </html>
