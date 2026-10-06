@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<!-- fix-9 -->
+<!-- fix-10 -->
 <title>Mijn Tuin — Plantenregister</title>
 <meta name="theme-color" content="#2C4A3B">
 <link rel="manifest" href="manifest.webmanifest">
@@ -112,14 +112,6 @@
   }
   .zone-tab.active{background:var(--moss);color:var(--paper);}
 
-  .dims-form{
-    display:flex;align-items:flex-end;gap:8px;margin-bottom:12px;flex-wrap:wrap;
-    background:white;border:1px solid var(--line);border-radius:10px;padding:10px 12px;
-  }
-  .dims-form .field{margin-bottom:0;flex:1;min-width:70px;}
-  .dims-form .field label{font-size:0.7rem;margin-bottom:2px;}
-  .dims-form .field input{padding:7px 8px;font-size:0.85rem;}
-  .dims-form .hint{width:100%;font-size:0.72rem;color:#8a8a78;order:5;margin-top:2px;}
 
   /* Plantvakken (fix-2) */
   #mapWrap{
@@ -377,18 +369,7 @@
         <button class="zone-tab" id="tabAchtertuin" data-zone="achtertuin">Achtertuin</button>
       </div>
 
-      <div class="dims-form">
-        <div class="field">
-          <label>Breedte (m)</label>
-          <input type="number" id="dimWidth" min="0.5" step="0.1">
-        </div>
-        <div class="field">
-          <label>Diepte (m)</label>
-          <input type="number" id="dimDepth" min="0.5" step="0.1">
-        </div>
-        <button class="btn-outline" id="saveDimsBtn">Afmetingen opslaan</button>
-        <div class="hint">De <span id="dimZoneLabel">voortuin</span> wordt verdeeld in vakken van 2 × 2 m: <span id="dimVakInfo"></span>.</div>
-      </div>
+      <p class="map-note" id="dimInfo" style="margin:0 0 10px;"></p>
 
       <div id="mapWrap">
         <img id="mapImg" alt="">
@@ -591,6 +572,17 @@
   <div class="modal" id="settingsModal">
     <div class="close-row"><button id="closeSettingsModal">&times;</button></div>
     <h2 class="display">Instellingen</h2>
+    <div class="section-label" style="border-top:none;padding-top:0;margin-top:10px;">Afmetingen van de tuin</div>
+    <div class="field-row">
+      <div class="field"><label>Voortuin breedte (m)</label><input type="number" id="dimVoortuinW" min="0.5" step="0.1" inputmode="decimal"></div>
+      <div class="field"><label>Voortuin diepte (m)</label><input type="number" id="dimVoortuinD" min="0.5" step="0.1" inputmode="decimal"></div>
+    </div>
+    <div class="field-row">
+      <div class="field"><label>Achtertuin breedte (m)</label><input type="number" id="dimAchtertuinW" min="0.5" step="0.1" inputmode="decimal"></div>
+      <div class="field"><label>Achtertuin diepte (m)</label><input type="number" id="dimAchtertuinD" min="0.5" step="0.1" inputmode="decimal"></div>
+    </div>
+    <p style="font-size:0.74rem;color:#8a8a78;margin:-6px 0 0;">Elke tuin wordt verdeeld in plantvakken van 2 × 2 m.</p>
+    <div class="section-label">Koppelingen</div>
     <div class="field">
       <label>Pl@ntNet API-key</label>
       <input type="text" id="plantnetKeyInput" placeholder="plak hier je key">
@@ -608,12 +600,13 @@
   </div>
 </div>
 
-<footer class="app-version mono">versie fix-9</footer>
+<footer class="app-version mono">versie fix-10</footer>
 
 <div class="toast" id="toast"></div>
 
 <!-- Firebase SDK -->
 <script type="module">
+  // fix-10: afmetingen van voortuin en achtertuin staan onder Instellingen
   // fix-9: ook de lichtere flash-lite-modellen van Gemini proberen
   // fix-8: letterlijke foutmelding van Google en het geprobeerde model tonen
   // fix-7: Gemini opnieuw proberen en uitwijken naar een ander model bij overbelasting (503)
@@ -714,21 +707,8 @@
 
   function applyDims() {
     const { w, d, cols, rows } = zoneGrid(currentZone);
-    $("dimWidth").value = w;
-    $("dimDepth").value = d;
-    $("dimZoneLabel").textContent = currentZone;
-    $("dimVakInfo").textContent = `${cols.length} breed (A–${colLetter(cols.length - 1)}) en ${rows.length} diep (1–${rows.length})`;
+    $("dimInfo").textContent = `${ZONE_LABEL[currentZone]} ${fmtM(w)} \u00d7 ${fmtM(d)} m: ${cols.length} vakken breed (A\u2013${colLetter(cols.length - 1)}) en ${rows.length} diep (1\u2013${rows.length}). Afmetingen wijzig je bij Instellingen.`;
   }
-
-  $("saveDimsBtn").onclick = async () => {
-    const w = parseFloat($("dimWidth").value);
-    const d = parseFloat($("dimDepth").value);
-    if (!w || !d || w <= 0 || d <= 0) { toast("Vul een geldige breedte en diepte in"); return; }
-    if (w > 52) { toast("De breedte kan maximaal 52 m zijn"); return; }
-    const cap = currentZone === "voortuin" ? "Voortuin" : "Achtertuin";
-    await setDoc(gardenDocRef, { ["dim" + cap + "W"]: w, ["dim" + cap + "D"]: d }, { merge: true });
-    toast("Afmetingen opgeslagen");
-  };
 
   document.querySelectorAll(".zone-tab").forEach(btn => {
     btn.onclick = () => {
@@ -774,10 +754,31 @@
   $("settingsBtn").onclick = () => {
     $("plantnetKeyInput").value = localStorage.getItem("plantnetApiKey") || "";
     $("geminiKeyInput").value = localStorage.getItem("geminiApiKey") || "";
+    ZONE_ORDER.forEach(zone => {
+      const cap = zone === "voortuin" ? "Voortuin" : "Achtertuin";
+      const { w, d } = zoneDims(zone);
+      $("dim" + cap + "W").value = w;
+      $("dim" + cap + "D").value = d;
+    });
     $("settingsModalBackdrop").classList.add("active");
   };
   $("closeSettingsModal").onclick = () => $("settingsModalBackdrop").classList.remove("active");
-  $("saveSettingsBtn").onclick = () => {
+  $("saveSettingsBtn").onclick = async () => {
+    // Afmetingen: alleen opslaan wat geldig en gewijzigd is.
+    const dimPatch = {};
+    for (const zone of ZONE_ORDER) {
+      const cap = zone === "voortuin" ? "Voortuin" : "Achtertuin";
+      const w = parseFloat($("dim" + cap + "W").value), d = parseFloat($("dim" + cap + "D").value);
+      if (!(w > 0) || !(d > 0)) { toast(`Vul een geldige breedte en diepte in voor de ${zone}`); return; }
+      if (w > 52) { toast("De breedte kan maximaal 52 m zijn"); return; }
+      const cur = zoneDims(zone);
+      if (w !== cur.w) dimPatch["dim" + cap + "W"] = w;
+      if (d !== cur.d) dimPatch["dim" + cap + "D"] = d;
+    }
+    if (Object.keys(dimPatch).length) {
+      try { await setDoc(gardenDocRef, dimPatch, { merge: true }); }
+      catch (err) { toast("Afmetingen opslaan mislukt: " + err.message); return; }
+    }
     localStorage.setItem("plantnetApiKey", $("plantnetKeyInput").value.trim());
     localStorage.setItem("geminiApiKey", $("geminiKeyInput").value.trim());
     geminiModel = null;
@@ -1627,7 +1628,7 @@ ${JSON.stringify(list.map(p => ({ id: p.id, naam: p.name || "", latijnseNaam: p.
   function placeholderThumb() { return "data:image/svg+xml;utf8," + encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" width="44" height="44"><rect width="44" height="44" fill="#F0EBDD"/><text x="22" y="27" font-size="20" text-anchor="middle">🌱</text></svg>'); }
 </script>
 <script>
-  // fix-9: installeerbare app
+  // fix-10: installeerbare app
   if ("serviceWorker" in navigator) {
     window.addEventListener("load", () => navigator.serviceWorker.register("./sw.js").catch(() => {}));
   }
