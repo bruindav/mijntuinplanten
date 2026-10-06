@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<!-- fix-10 -->
+<!-- fix-11 -->
 <title>Mijn Tuin — Plantenregister</title>
 <meta name="theme-color" content="#2C4A3B">
 <link rel="manifest" href="manifest.webmanifest">
@@ -176,6 +176,10 @@
     background:var(--moss);color:var(--paper);padding:6px 12px;border-radius:999px;
     font-size:0.82rem;font-weight:600;white-space:nowrap;box-shadow:0 4px 12px rgba(0,0,0,0.3);
   }
+  /* Bloei en snoei in de lijst (fix-11) */
+  .row-status{display:flex;gap:6px;align-items:center;flex-shrink:0;}
+  .st-ico{width:22px;height:22px;display:block;}
+  .legend .st-ico{width:15px;height:15px;}
   .map-note{font-size:0.72rem;color:#8a8a78;margin:6px 0 0;}
 
   /* Month wheel */
@@ -388,8 +392,8 @@
           <div class="wheel-center" id="wheelCenter">Alle<br>planten</div>
         </div>
         <div class="legend">
-          <span><i class="dot bloom"></i> bloeit deze maand</span>
-          <span><i class="dot prune"></i> snoeien deze maand</span>
+          <span><i class="dot bloom"></i><span id="legendBloom"></span> bloeit deze maand</span>
+          <span><i class="dot prune"></i><span id="legendPrune"></span> snoeien deze maand</span>
         </div>
       </div>
     </section>
@@ -600,12 +604,13 @@
   </div>
 </div>
 
-<footer class="app-version mono">versie fix-10</footer>
+<footer class="app-version mono">versie fix-11</footer>
 
 <div class="toast" id="toast"></div>
 
 <!-- Firebase SDK -->
 <script type="module">
+  // fix-11: bloei en snoei van de gekozen maand ook in de plantenlijst, als bloem en snoeischaar
   // fix-10: afmetingen van voortuin en achtertuin staan onder Instellingen
   // fix-9: ook de lichtere flash-lite-modellen van Gemini proberen
   // fix-8: letterlijke foutmelding van Google en het geprobeerde model tonen
@@ -968,6 +973,7 @@
       document.querySelectorAll(".wheel-month").forEach(w => w.classList.toggle("active", Number(w.dataset.month) === selectedMonth));
       $("wheelCenter").innerHTML = selectedMonth === null ? "Alle<br>planten" : m.toUpperCase();
       renderGrid();
+      renderList();
     };
     wheel.appendChild(el);
   });
@@ -1076,16 +1082,23 @@
     return v ? `<span class="badge in-vak">${ZONE_SHORT[plantZone(p)]} ${escapeHtml(v)}</span>`
              : `<span class="badge none">${ZONE_SHORT[plantZone(p)]} · geen vak</span>`;
   }
+  // Same colours as the dots on the map: pink flower = blooms, blue shears = prune.
+  const ICON_BLOOM = '<svg class="st-ico" viewBox="0 0 24 24" fill="#D66B9E" role="img" aria-label="Bloeit in deze maand"><title>Bloeit in deze maand</title><circle cx="12" cy="5.6" r="3.7"/><circle cx="18.1" cy="10" r="3.7"/><circle cx="15.8" cy="17.2" r="3.7"/><circle cx="8.2" cy="17.2" r="3.7"/><circle cx="5.9" cy="10" r="3.7"/><circle cx="12" cy="12" r="2.7" fill="#FAF7F0"/></svg>';
+  const ICON_PRUNE = '<svg class="st-ico" viewBox="0 0 24 24" fill="none" stroke="#4B79A1" stroke-width="2.3" stroke-linecap="round" role="img" aria-label="Snoeien in deze maand"><title>Snoeien in deze maand</title><circle cx="6" cy="6" r="3"/><circle cx="6" cy="18" r="3"/><path d="M8.5 7.9 20.5 18M8.5 16.1 20.5 6"/></svg>';
+  $("legendBloom").innerHTML = ICON_BLOOM;
+  $("legendPrune").innerHTML = ICON_PRUNE;
   function plantRow(p, onClick) {
     const row = document.createElement("div");
     row.className = "plant-row";
+    const st = monthStatus(p);
     row.innerHTML = `
       <img class="plant-thumb" src="${p.photo || placeholderThumb()}" alt="">
       <div class="info">
         <div class="name">${escapeHtml(p.name || "Naamloos")}${p.variety ? ` <span class="variety">\u00b7 ${escapeHtml(p.variety)}</span>` : ""}</div>
         <div class="latin">${escapeHtml(p.latin || "")}</div>
         <div class="meta">${vakBadge(p)}${p.category ? `<span class="badge">${escapeHtml(p.category)}</span>` : ""}${p.plantedDate ? `<span>geplant ${escapeHtml(p.plantedDate)}</span>` : ""}</div>
-      </div>`;
+      </div>
+      <div class="row-status">${st.blooming ? ICON_BLOOM : ""}${st.pruning ? ICON_PRUNE : ""}</div>`;
     row.onclick = onClick;
     return row;
   }
@@ -1628,7 +1641,7 @@ ${JSON.stringify(list.map(p => ({ id: p.id, naam: p.name || "", latijnseNaam: p.
   function placeholderThumb() { return "data:image/svg+xml;utf8," + encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" width="44" height="44"><rect width="44" height="44" fill="#F0EBDD"/><text x="22" y="27" font-size="20" text-anchor="middle">🌱</text></svg>'); }
 </script>
 <script>
-  // fix-10: installeerbare app
+  // fix-11: installeerbare app
   if ("serviceWorker" in navigator) {
     window.addEventListener("load", () => navigator.serviceWorker.register("./sw.js").catch(() => {}));
   }
