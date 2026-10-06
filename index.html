@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<!-- fix-3 -->
+<!-- fix-4 -->
 <title>Mijn Tuin — Plantenregister</title>
 <meta name="theme-color" content="#2C4A3B">
 <link rel="manifest" href="manifest.webmanifest">
@@ -175,6 +175,15 @@
   .pick-info{font-size:0.76rem;color:#5b5b52;margin-top:6px;}
   .variety{font-weight:400;color:#6b6b5e;}
   .vak-plant small{font-size:0.66rem;color:#6b6b5e;font-weight:400;}
+  /* Plant verslepen naar een ander vak (fix-4) */
+  .vak-plant{touch-action:none;cursor:grab;user-select:none;-webkit-user-select:none;}
+  .vak-plant.drag-src{opacity:0.3;}
+  .vak.drop-target{background:#F3E2B4;box-shadow:inset 0 0 0 3px var(--ochre);}
+  .drag-ghost{
+    position:fixed;z-index:300;pointer-events:none;transform:translate(-50%,-150%);
+    background:var(--moss);color:var(--paper);padding:6px 12px;border-radius:999px;
+    font-size:0.82rem;font-weight:600;white-space:nowrap;box-shadow:0 4px 12px rgba(0,0,0,0.3);
+  }
   .map-note{font-size:0.72rem;color:#8a8a78;margin:6px 0 0;}
 
   /* Month wheel */
@@ -333,7 +342,7 @@
     <section class="map-panel">
       <div class="map-toolbar">
         <h2 class="display">Plantvakken</h2>
-        <span class="sub">Tik een vak aan om de planten te zien of er een toe te voegen</span>
+        <span class="sub">Tik een vak aan om de planten te zien of er een toe te voegen. Sleep een plant naar een ander vak om hem te verplaatsen.</span>
       </div>
       <div class="zone-tabs">
         <button class="zone-tab active" id="tabVoortuin" data-zone="voortuin">Voortuin</button>
@@ -520,12 +529,13 @@
   </div>
 </div>
 
-<footer class="app-version mono">versie fix-3</footer>
+<footer class="app-version mono">versie fix-4</footer>
 
 <div class="toast" id="toast"></div>
 
 <!-- Firebase SDK -->
 <script type="module">
+  // fix-4: plant verslepen naar een ander vak op de plantvakkenkaart
   // fix-3: plantvak aanwijzen op een kaartje, variëteit of kleur per plant
   // fix-2: plantvakken van 2 x 2 m, soort per plant, sorteerbare lijst
   import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
@@ -742,10 +752,10 @@
           let cls = "vak-plant";
           if (selectedMonth !== null) cls += (st.blooming || st.pruning) ? " lit" : " dim";
           const dots = (st.blooming ? '<i class="dot bloom"></i>' : "") + (st.pruning ? '<i class="dot prune"></i>' : "");
-          html += `<span class="${cls}">${dots}${escapeHtml(p.name || "Naamloos")}${p.variety ? ` <small>${escapeHtml(p.variety)}</small>` : ""}</span>`;
+          html += `<span class="${cls}" data-id="${escapeHtml(p.id)}">${dots}${escapeHtml(p.name || "Naamloos")}${p.variety ? ` <small>${escapeHtml(p.variety)}</small>` : ""}</span>`;
         });
         cell.innerHTML = html;
-        cell.onclick = () => openVakModal(label);
+        cell.onclick = () => { if (Date.now() >= suppressVakClickUntil) openVakModal(label); };
         grid.appendChild(cell);
       }
     }
@@ -759,6 +769,68 @@
       : `${loose} planten in deze tuin hebben nog geen vak — zie de lijst.`;
     if (openVak && $("vakModalBackdrop").classList.contains("active")) fillVakModal();
   }
+
+  // Drag a plant name to another vak. Works with mouse and finger; the page scrolls along near the edges.
+  let suppressVakClickUntil = 0;
+  $("vakGrid").addEventListener("pointerdown", (e) => {
+    const chip = e.target.closest(".vak-plant");
+    if (!chip || e.button) return;
+    const plant = plants.find(p => p.id === chip.dataset.id);
+    if (!plant) return;
+    const grid = $("vakGrid");
+    const startX = e.clientX, startY = e.clientY;
+    let lastX = startX, lastY = startY, dragging = false, ghost = null, target = null, scroller = null;
+    if (e.pointerType === "mouse") e.preventDefault();
+    try { chip.setPointerCapture(e.pointerId); } catch {}
+    const setTarget = () => {
+      const el = document.elementFromPoint(lastX, lastY);
+      const cell = el && grid.contains(el) ? el.closest(".vak") : null;
+      if (cell === target) return;
+      if (target) target.classList.remove("drop-target");
+      target = cell;
+      if (target) target.classList.add("drop-target");
+    };
+    const move = (ev) => {
+      lastX = ev.clientX; lastY = ev.clientY;
+      if (!dragging) {
+        if (Math.hypot(lastX - startX, lastY - startY) < 7) return;
+        dragging = true;
+        chip.classList.add("drag-src");
+        ghost = document.createElement("div");
+        ghost.className = "drag-ghost";
+        ghost.textContent = (plant.name || "Naamloos") + (plant.variety ? " \u00b7 " + plant.variety : "");
+        document.body.appendChild(ghost);
+        scroller = setInterval(() => {
+          const step = lastY < 110 ? -12 : lastY > window.innerHeight - 70 ? 12 : 0;
+          if (step) { window.scrollBy(0, step); setTarget(); }
+        }, 16);
+      }
+      ghost.style.left = lastX + "px";
+      ghost.style.top = lastY + "px";
+      setTarget();
+    };
+    const end = async (ev) => {
+      chip.removeEventListener("pointermove", move);
+      chip.removeEventListener("pointerup", end);
+      chip.removeEventListener("pointercancel", end);
+      if (!dragging) return;
+      clearInterval(scroller);
+      ghost.remove();
+      chip.classList.remove("drag-src");
+      suppressVakClickUntil = Date.now() + 80;
+      const dest = target ? target.dataset.vak : null;
+      if (target) target.classList.remove("drop-target");
+      if (ev.type === "pointercancel" || !dest) return;
+      if (dest === plantVak(plant) && plantZone(plant) === currentZone) return;
+      try {
+        await updateDoc(doc(plantsCol, plant.id), { zone: currentZone, vak: dest });
+        toast(`${plant.name || "Plant"} verplaatst naar vak ${dest}`);
+      } catch (err) { toast("Verplaatsen mislukt: " + err.message); }
+    };
+    chip.addEventListener("pointermove", move);
+    chip.addEventListener("pointerup", end);
+    chip.addEventListener("pointercancel", end);
+  });
 
   function fillVakModal() {
     const label = openVak;
@@ -1186,7 +1258,7 @@
   function placeholderThumb() { return "data:image/svg+xml;utf8," + encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" width="44" height="44"><rect width="44" height="44" fill="#F0EBDD"/><text x="22" y="27" font-size="20" text-anchor="middle">🌱</text></svg>'); }
 </script>
 <script>
-  // fix-3: installeerbare app
+  // fix-4: installeerbare app
   if ("serviceWorker" in navigator) {
     window.addEventListener("load", () => navigator.serviceWorker.register("./sw.js").catch(() => {}));
   }
