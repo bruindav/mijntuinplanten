@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<!-- fix-7 -->
+<!-- fix-8 -->
 <title>Mijn Tuin — Plantenregister</title>
 <meta name="theme-color" content="#2C4A3B">
 <link rel="manifest" href="manifest.webmanifest">
@@ -608,12 +608,13 @@
   </div>
 </div>
 
-<footer class="app-version mono">versie fix-7</footer>
+<footer class="app-version mono">versie fix-8</footer>
 
 <div class="toast" id="toast"></div>
 
 <!-- Firebase SDK -->
 <script type="module">
+  // fix-8: letterlijke foutmelding van Google en het geprobeerde model tonen
   // fix-7: Gemini opnieuw proberen en uitwijken naar een ander model bij overbelasting (503)
   // fix-6: inklapbare blokken Plek en Verzorging; bemesting en gewenste grondsoort ophalen
   // fix-5: voorbeeldfoto's bij het herkennen; bloei en snoei ophalen met AI
@@ -1413,11 +1414,24 @@
     }
     return res;
   }
+  // What Google itself says about a failed request, so the cause is visible in the app.
+  async function geminiDetail(res, models) {
+    let msg = "";
+    try {
+      const body = await res.text();
+      try { const j = JSON.parse(body); msg = (j.error && (j.error.message || j.error.status)) || ""; } catch { msg = body; }
+    } catch {}
+    msg = String(msg).replace(/\s+/g, " ").trim().slice(0, 300);
+    return ` \u2014 Google meldt (${res.status}${models && models.length ? ", model " + models.join(", ") : ""}): ${msg ? "\u201c" + msg + "\u201d" : "geen toelichting"}`;
+  }
   async function pickGeminiModels(key) {
     if (geminiModel) return geminiModel;
     const res = await geminiFetch(`https://generativelanguage.googleapis.com/v1beta/models?pageSize=200&key=${encodeURIComponent(key)}`, undefined, 3);
-    if (GEMINI_BUSY.includes(res.status)) throw new Error("Gemini is op dit moment overbelast, probeer het over een paar minuten opnieuw");
-    if (!res.ok) throw new Error([400, 401, 403].includes(res.status) ? "de Gemini API-key wordt niet geaccepteerd" : "Gemini gaf een fout (" + res.status + ")");
+    if (!res.ok) {
+      const base = GEMINI_BUSY.includes(res.status) ? "Gemini is niet bereikbaar bij het opvragen van de modellen"
+        : [400, 401, 403].includes(res.status) ? "de Gemini API-key wordt niet geaccepteerd" : "Gemini gaf een fout";
+      throw new Error(base + await geminiDetail(res));
+    }
     const names = ((await res.json()).models || [])
       .filter(m => (m.supportedGenerationMethods || []).includes("generateContent"))
       .map(m => (m.name || "").replace(/^models\//, ""));
@@ -1455,7 +1469,9 @@ Planten:
 ${JSON.stringify(list.map(p => ({ id: p.id, naam: p.name || "", latijnseNaam: p.latin || "", varieteitOfKleur: p.variety || "" })))}`;
     // Try the best model first (twice); when it stays overloaded or over its limit, move on to the next one.
     let res;
+    const tried = [];
     for (let m = 0; m < models.length; m++) {
+      tried.push(models[m]);
       res = await geminiFetch(`https://generativelanguage.googleapis.com/v1beta/models/${models[m]}:generateContent?key=${encodeURIComponent(key)}`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -1471,10 +1487,11 @@ ${JSON.stringify(list.map(p => ({ id: p.id, naam: p.name || "", latijnseNaam: p.
       if (!GEMINI_BUSY.includes(res.status) && res.status !== 429 && res.status !== 404) break;
     }
     if (!res.ok) {
-      if (GEMINI_BUSY.includes(res.status)) throw new Error("Gemini is op dit moment overbelast, probeer het over een paar minuten opnieuw");
-      if (res.status === 429) throw new Error("de limiet van Gemini is bereikt, probeer het later opnieuw");
-      if ([400, 401, 403].includes(res.status)) throw new Error("Gemini weigert het verzoek (" + res.status + "); controleer je API-key");
-      throw new Error("Gemini gaf een fout (" + res.status + ")");
+      const base = GEMINI_BUSY.includes(res.status) ? "Gemini gaf geen antwoord"
+        : res.status === 429 ? "de limiet van Gemini is bereikt, probeer het later opnieuw"
+        : [400, 401, 403].includes(res.status) ? "Gemini weigert het verzoek; controleer je API-key"
+        : "Gemini gaf een fout";
+      throw new Error(base + await geminiDetail(res, tried));
     }
     const json = await res.json();
     let text = ((json.candidates || [])[0]?.content?.parts || []).map(pt => pt.text || "").join("").trim();
@@ -1606,7 +1623,7 @@ ${JSON.stringify(list.map(p => ({ id: p.id, naam: p.name || "", latijnseNaam: p.
   function placeholderThumb() { return "data:image/svg+xml;utf8," + encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" width="44" height="44"><rect width="44" height="44" fill="#F0EBDD"/><text x="22" y="27" font-size="20" text-anchor="middle">🌱</text></svg>'); }
 </script>
 <script>
-  // fix-7: installeerbare app
+  // fix-8: installeerbare app
   if ("serviceWorker" in navigator) {
     window.addEventListener("load", () => navigator.serviceWorker.register("./sw.js").catch(() => {}));
   }
