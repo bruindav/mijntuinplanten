@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<!-- fix-2 -->
+<!-- fix-3 -->
 <title>Mijn Tuin — Plantenregister</title>
 <meta name="theme-color" content="#2C4A3B">
 <link rel="manifest" href="manifest.webmanifest">
@@ -158,6 +158,23 @@
   .vak-plant.dim{opacity:0.35;}
   .vak-plant.lit{font-weight:700;}
   .vak-plant .dot{width:7px;height:7px;margin-right:4px;}
+  /* Vakkiezer in het plantvenster (fix-3) */
+  #vakPicker{display:grid;border:1px solid var(--line);border-radius:8px;overflow:hidden;background:var(--paper-dim);}
+  .pick{
+    display:flex;align-items:center;justify-content:center;gap:5px;min-width:0;
+    padding:2px;border-radius:0;background:white;color:var(--soil);
+    border:none;border-right:1px solid var(--line);border-bottom:1px solid var(--line);
+    font-family:'IBM Plex Mono',monospace;font-size:0.78rem;font-weight:500;
+  }
+  .pick:active{transform:none;}
+  .pick:focus-visible{outline-offset:-3px;}
+  .pick.has-plants{background:#E3ECDF;}
+  .pick .n{font-size:0.62rem;color:#8a8a78;}
+  .pick.selected{background:var(--moss);color:var(--paper);font-weight:600;}
+  .pick.selected .n{color:rgba(250,247,240,0.7);}
+  .pick-info{font-size:0.76rem;color:#5b5b52;margin-top:6px;}
+  .variety{font-weight:400;color:#6b6b5e;}
+  .vak-plant small{font-size:0.66rem;color:#6b6b5e;font-weight:400;}
   .map-note{font-size:0.72rem;color:#8a8a78;margin:6px 0 0;}
 
   /* Month wheel */
@@ -361,7 +378,7 @@
 
     <section class="list-panel">
       <h2 class="display">Planten <span id="plantCount" class="mono" style="font-size:0.85rem;color:#8a8a78;"></span></h2>
-      <input type="text" id="searchBox" placeholder="Zoek op naam, soort of vak...">
+      <input type="text" id="searchBox" placeholder="Zoek op naam, kleur, soort of vak...">
       <div class="sort-bar">
         <span class="lbl">Sorteer op</span>
         <button class="sort-btn active" data-sort="naam">Naam</button>
@@ -408,6 +425,13 @@
       <div class="field"><label>Latijnse naam</label><input type="text" id="plantLatin" placeholder="bv. Buddleja davidii"></div>
     </div>
     <div class="field-row">
+      <div class="field"><label>Variëteit of kleur</label><input type="text" id="plantVariety" placeholder="bv. Moneymaker of rood"></div>
+      <div class="field">
+        <label>Soort</label>
+        <select id="plantCategory"></select>
+      </div>
+    </div>
+    <div class="field-row">
       <div class="field">
         <label>Tuin</label>
         <select id="plantZone">
@@ -415,17 +439,12 @@
           <option value="achtertuin">Achtertuin</option>
         </select>
       </div>
-      <div class="field">
-        <label>Plantvak</label>
-        <select id="plantVak"></select>
-      </div>
-    </div>
-    <div class="field-row">
-      <div class="field">
-        <label>Soort</label>
-        <select id="plantCategory"></select>
-      </div>
       <div class="field"><label>Geplant op</label><input type="date" id="plantDate"></div>
+    </div>
+    <div class="field">
+      <label>Plantvak — wijs het vak aan</label>
+      <div id="vakPicker"></div>
+      <div class="pick-info" id="vakPickInfo"></div>
     </div>
     <div class="field"><label>Plek / notitie</label><input type="text" id="plantLocationNote" placeholder="bv. bij de schutting"></div>
 
@@ -501,12 +520,13 @@
   </div>
 </div>
 
-<footer class="app-version mono">versie fix-2</footer>
+<footer class="app-version mono">versie fix-3</footer>
 
 <div class="toast" id="toast"></div>
 
 <!-- Firebase SDK -->
 <script type="module">
+  // fix-3: plantvak aanwijzen op een kaartje, variëteit of kleur per plant
   // fix-2: plantvakken van 2 x 2 m, soort per plant, sorteerbare lijst
   import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
   import { getAuth, GoogleAuthProvider, signInWithPopup, signOut, onAuthStateChanged }
@@ -545,6 +565,7 @@
   let sortKey = "naam"; // "naam" | "vak" | "soort"
   let sortDir = 1;      // 1 = oplopend, -1 = aflopend
   let openVak = null;   // label of the vak shown in the vak modal
+  let pickedVak = "";   // vak chosen in the plant modal ("" = geen vak)
 
   const $ = (id) => document.getElementById(id);
   const clamp = (v, lo, hi) => Math.min(Math.max(v, lo), hi);
@@ -721,7 +742,7 @@
           let cls = "vak-plant";
           if (selectedMonth !== null) cls += (st.blooming || st.pruning) ? " lit" : " dim";
           const dots = (st.blooming ? '<i class="dot bloom"></i>' : "") + (st.pruning ? '<i class="dot prune"></i>' : "");
-          html += `<span class="${cls}">${dots}${escapeHtml(p.name || "Naamloos")}</span>`;
+          html += `<span class="${cls}">${dots}${escapeHtml(p.name || "Naamloos")}${p.variety ? ` <small>${escapeHtml(p.variety)}</small>` : ""}</span>`;
         });
         cell.innerHTML = html;
         cell.onclick = () => openVakModal(label);
@@ -805,16 +826,34 @@
   catSel.appendChild(new Option("— onbekend —", ""));
   CATEGORIES.forEach(c => catSel.appendChild(new Option(c, c)));
 
-  function fillVakSelect(zone, selected) {
-    const sel = $("plantVak");
-    sel.innerHTML = "";
-    sel.appendChild(new Option("— geen vak —", ""));
-    const labels = zoneVakLabels(zone);
-    if (selected && !labels.includes(selected)) labels.push(selected);
-    labels.forEach(l => sel.appendChild(new Option(l, l)));
-    sel.value = selected || "";
+  // Small map of the chosen garden in the plant modal: tap a vak to choose it, tap again to clear.
+  function renderVakPicker(zone, selected) {
+    pickedVak = selected || "";
+    const picker = $("vakPicker");
+    const { cols, rows } = zoneGrid(zone);
+    picker.innerHTML = "";
+    picker.style.gridTemplateColumns = cols.map(m => `minmax(0, ${m}fr)`).join(" ");
+    picker.style.gridTemplateRows = rows.map(m => `${Math.max(30, Math.round(42 * m / VAK_M))}px`).join(" ");
+    for (let r = 0; r < rows.length; r++) {
+      for (let c = 0; c < cols.length; c++) {
+        const label = vakLabel(c, r);
+        const n = plants.filter(p => p.id !== currentEditId && plantZone(p) === zone && plantVak(p) === label).length;
+        const b = document.createElement("button");
+        b.type = "button";
+        b.className = "pick" + (n ? " has-plants" : "") + (label === pickedVak ? " selected" : "");
+        b.dataset.vak = label;
+        b.setAttribute("aria-pressed", label === pickedVak ? "true" : "false");
+        b.innerHTML = `<span>${label}</span>${n ? `<span class="n">${n}</span>` : ""}`;
+        b.onclick = () => renderVakPicker(zone, label === pickedVak ? "" : label);
+        picker.appendChild(b);
+      }
+    }
+    const known = zoneVakLabels(zone).includes(pickedVak);
+    $("vakPickInfo").textContent = !pickedVak ? "Nog geen vak gekozen."
+      : known ? `Gekozen: vak ${pickedVak} in de ${zone}. Tik er nog eens op om de keuze te wissen.`
+      : `Staat nu in vak ${pickedVak}, dat niet meer op het kaartje staat. Wijs een nieuw vak aan.`;
   }
-  $("plantZone").onchange = () => fillVakSelect($("plantZone").value, "");
+  $("plantZone").onchange = () => renderVakPicker($("plantZone").value, "");
 
   applyDims();
   renderGrid();
@@ -834,7 +873,8 @@
     return [ZONE_ORDER.indexOf(plantZone(p)), pos ? 0 : 1, pos ? pos.c : 0, pos ? pos.r : 0];
   }
   function compareBy(key) {
-    const byName = (a, b) => (a.name || "").localeCompare(b.name || "", "nl", { sensitivity: "base" });
+    const byName = (a, b) => (a.name || "").localeCompare(b.name || "", "nl", { sensitivity: "base" })
+      || (a.variety || "").localeCompare(b.variety || "", "nl", { sensitivity: "base" });
     if (key === "vak") return (a, b) => {
       const x = vakSortParts(a), y = vakSortParts(b);
       for (let i = 0; i < x.length; i++) if (x[i] !== y[i]) return x[i] - y[i];
@@ -863,7 +903,7 @@
     row.innerHTML = `
       <img class="plant-thumb" src="${p.photo || placeholderThumb()}" alt="">
       <div class="info">
-        <div class="name">${escapeHtml(p.name || "Naamloos")}</div>
+        <div class="name">${escapeHtml(p.name || "Naamloos")}${p.variety ? ` <span class="variety">\u00b7 ${escapeHtml(p.variety)}</span>` : ""}</div>
         <div class="latin">${escapeHtml(p.latin || "")}</div>
         <div class="meta">${vakBadge(p)}${p.category ? `<span class="badge">${escapeHtml(p.category)}</span>` : ""}${p.plantedDate ? `<span>geplant ${escapeHtml(p.plantedDate)}</span>` : ""}</div>
       </div>`;
@@ -874,7 +914,7 @@
   function renderList() {
     const q = $("searchBox").value.trim().toLowerCase();
     const listEl = $("plantList");
-    const haystack = (p) => [p.name, p.latin, p.category, plantVak(p), ZONE_LABEL[plantZone(p)]].join(" ").toLowerCase();
+    const haystack = (p) => [p.name, p.variety, p.latin, p.category, plantVak(p), ZONE_LABEL[plantZone(p)]].join(" ").toLowerCase();
     const filtered = plants.filter(p => haystack(p).includes(q)).sort(compareBy(sortKey));
     if (sortDir < 0) filtered.reverse();
     $("plantCount").textContent = plants.length ? `(${plants.length})` : "";
@@ -936,7 +976,8 @@
     $("plantName").value = plant?.name || "";
     $("plantLatin").value = plant?.latin || "";
     $("plantZone").value = zone;
-    fillVakSelect(zone, vak);
+    renderVakPicker(zone, vak);
+    $("plantVariety").value = plant?.variety || "";
     $("plantCategory").value = CATEGORIES.includes(plant?.category) ? plant.category : "";
     $("plantDate").value = plant?.plantedDate || "";
     $("plantLocationNote").value = plant?.locationNote || "";
@@ -985,7 +1026,8 @@
       name,
       latin: $("plantLatin").value.trim(),
       zone: $("plantZone").value,
-      vak: $("plantVak").value,
+      vak: pickedVak,
+      variety: $("plantVariety").value.trim(),
       category: $("plantCategory").value,
       plantedDate: $("plantDate").value,
       locationNote: $("plantLocationNote").value.trim(),
@@ -1144,7 +1186,7 @@
   function placeholderThumb() { return "data:image/svg+xml;utf8," + encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" width="44" height="44"><rect width="44" height="44" fill="#F0EBDD"/><text x="22" y="27" font-size="20" text-anchor="middle">🌱</text></svg>'); }
 </script>
 <script>
-  // fix-2: installeerbare app
+  // fix-3: installeerbare app
   if ("serviceWorker" in navigator) {
     window.addEventListener("load", () => navigator.serviceWorker.register("./sw.js").catch(() => {}));
   }
