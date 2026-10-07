@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<!-- fix-14 -->
+<!-- fix-15 -->
 <title>Mijn Tuin — Plantenregister</title>
 <meta name="theme-color" content="#2C4A3B">
 <link rel="manifest" href="manifest.webmanifest">
@@ -195,6 +195,16 @@
     header .btn-ghost{padding:8px 9px;font-size:0.78rem;}
   }
   @media(max-width:380px){ header .brand svg{display:none;} }
+  /* Voortgang bij ophalen (fix-15) */
+  #careProgress{display:flex;align-items:center;gap:8px;font-weight:600;color:var(--ink) !important;font-size:0.86rem !important;margin-top:4px;}
+  .spinner{width:16px;height:16px;border-radius:50%;border:3px solid var(--line);border-top-color:var(--moss);flex-shrink:0;animation:spin .8s linear infinite;}
+  @keyframes spin{to{transform:rotate(360deg);}}
+  #careLog{
+    display:none;margin-top:8px;max-height:170px;overflow-y:auto;background:white;border:1px solid var(--line);border-radius:8px;
+    padding:8px 10px;font-family:'IBM Plex Mono',monospace;font-size:0.68rem;line-height:1.5;color:#4a4a40;overflow-wrap:anywhere;
+  }
+  #careLog .t{color:#8a8a78;margin-right:6px;}
+  #careLog .err{color:var(--danger);}
   /* Via Claude (fix-14) */
   #careClaudeBlock{margin-top:18px;background:var(--paper);}
   #careClaudeBlock ol{margin:0 0 12px;padding-left:18px;font-size:0.82rem;line-height:1.5;color:#4a4a40;}
@@ -585,7 +595,8 @@
     <p class="modal-sub">De bloeiperiode, snoeimaanden, het snoeiadvies, de bemesting en de gewenste grondsoort worden opgehaald met AI (Google Gemini), voor het Nederlandse klimaat. Controleer het resultaat: het is een advies, geen naslagwerk.</p>
     <div id="careSummary" style="font-size:0.88rem;"></div>
     <label class="check"><input type="checkbox" id="careOverwrite"><span>Ook gegevens vervangen die al zijn ingevuld</span></label>
-    <div id="careProgress" style="font-size:0.82rem;color:#6b6b5e;min-height:1.2em;"></div>
+    <div id="careProgress" style="font-size:0.82rem;color:#6b6b5e;min-height:1.2em;"><span id="careSpinner" class="spinner" style="display:none;"></span><span id="careProgressText"></span></div>
+    <div id="careLog" aria-live="polite"></div>
     <div class="modal-actions">
       <div style="flex:1;"></div>
       <button class="btn-outline" id="careCancelBtn">Sluiten</button>
@@ -652,12 +663,13 @@
   </div>
 </div>
 
-<footer class="app-version mono">versie fix-14</footer>
+<footer class="app-version mono">versie fix-15</footer>
 
 <div class="toast" id="toast"></div>
 
 <!-- Firebase SDK -->
 <script type="module">
+  // fix-15: zichtbaar logboek, teller en tijdslimiet bij verzorging ophalen
   // fix-14: verzorging ophalen via een opdracht voor Claude en een bestand om te importeren
   // fix-13: plant toevoegen als plusknop in de bovenbalk
   // fix-12: terugknop sluit eerst het open venster en vraagt daarna om een tweede keer drukken
@@ -1473,12 +1485,29 @@
   const sleep = (ms) => new Promise(r => setTimeout(r, ms));
   let geminiRetryMs = 2500;
   // fetch that retries when Google answers "overloaded / temporarily unavailable"
-  async function geminiFetch(url, options, tries) {
+  // Whoever is waiting for the result sets careReport to see every step (model, attempt, wait, error).
+  let careReport = () => {};
+  let geminiTimeoutMs = 45000;
+  try { geminiTimeoutMs = Number(localStorage.getItem("mijntuin.geminiTimeoutMs")) || 45000; } catch {}
+  // fetch that reports what it does, gives up on a request after 45 s, and retries when Google is busy
+  async function geminiFetch(url, options, tries, label) {
     let res;
     for (let i = 0; i < tries; i++) {
-      if (i) await sleep(geminiRetryMs * i);
-      try { res = await fetch(url, options); } catch (err) { if (i === tries - 1) throw new Error("geen verbinding met Gemini"); continue; }
-      if (!GEMINI_BUSY.includes(res.status)) return res;
+      if (i) { careReport(`${label}: opnieuw proberen over ${Math.round(geminiRetryMs * i / 100) / 10} s`); await sleep(geminiRetryMs * i); }
+      careReport(`${label}: verzoek verstuurd` + (tries > 1 ? ` (poging ${i + 1} van ${tries})` : ""));
+      const ctrl = new AbortController();
+      const timer = setTimeout(() => ctrl.abort(), geminiTimeoutMs);
+      try {
+        res = await fetch(url, { ...(options || {}), signal: ctrl.signal });
+      } catch (err) {
+        const why = ctrl.signal.aborted ? `geen antwoord binnen ${Math.round(geminiTimeoutMs / 1000)} seconden` : "geen verbinding";
+        careReport(`${label}: ${why}`, true);
+        // A request that got no answer at all is not repeated on the same model; the caller moves on.
+        if (ctrl.signal.aborted || i === tries - 1) { const e = new Error(`${why} met Gemini (${label})`); e.noAnswer = true; throw e; }
+        continue;
+      } finally { clearTimeout(timer); }
+      if (!GEMINI_BUSY.includes(res.status)) { careReport(`${label}: antwoord ${res.status}`, !res.ok); return res; }
+      careReport(`${label}: antwoord ${res.status}, Google heeft het te druk`, true);
     }
     return res;
   }
@@ -1494,7 +1523,7 @@
   }
   async function pickGeminiModels(key) {
     if (geminiModel) return geminiModel;
-    const res = await geminiFetch(`https://generativelanguage.googleapis.com/v1beta/models?pageSize=200&key=${encodeURIComponent(key)}`, undefined, 3);
+    const res = await geminiFetch(`https://generativelanguage.googleapis.com/v1beta/models?pageSize=200&key=${encodeURIComponent(key)}`, undefined, 3, "Beschikbare modellen opvragen");
     if (!res.ok) {
       const base = GEMINI_BUSY.includes(res.status) ? "Gemini is niet bereikbaar bij het opvragen van de modellen"
         : [400, 401, 403].includes(res.status) ? "de Gemini API-key wordt niet geaccepteerd" : "Gemini gaf een fout";
@@ -1516,6 +1545,7 @@
     if (!list.length) list.push(...names.filter(n => n.includes("flash")).slice(0, 2), ...names.slice(0, 1));
     geminiModel = [...new Set(list)].slice(0, 6);
     if (!geminiModel.length) { geminiModel = null; throw new Error("geen bruikbaar Gemini-model gevonden"); }
+    careReport("Te proberen modellen: " + geminiModel.join(", "));
     return geminiModel;
   }
   const monthIdx = (v) => { const n = Number(v); return Number.isInteger(n) && n >= 1 && n <= 12 ? n - 1 : null; };
@@ -1582,23 +1612,32 @@ ${JSON.stringify(list.map(p => ({ id: p.id, naam: p.name || "", latijnseNaam: p.
     const models = await pickGeminiModels(key);
     const prompt = carePromptText(list, false);
     // Try the best model first (twice); when it stays overloaded or over its limit, move on to the next one.
-    let res;
+    let res, silent = 0;
     const tried = [];
     for (let m = 0; m < models.length; m++) {
       tried.push(models[m]);
-      res = await geminiFetch(`https://generativelanguage.googleapis.com/v1beta/models/${models[m]}:generateContent?key=${encodeURIComponent(key)}`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          contents: [{ role: "user", parts: [{ text: prompt }] }],
-          generationConfig: { temperature: 0.2, responseMimeType: "application/json" },
-        }),
-      }, 2);
+      try {
+        res = await geminiFetch(`https://generativelanguage.googleapis.com/v1beta/models/${models[m]}:generateContent?key=${encodeURIComponent(key)}`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            contents: [{ role: "user", parts: [{ text: prompt }] }],
+            generationConfig: { temperature: 0.2, responseMimeType: "application/json" },
+          }),
+        }, 2, "Model " + models[m]);
+      } catch (err) {
+        // No answer from this model: try the next one, but give up after two silent models in a row.
+        if (!err.noAnswer || ++silent >= 2 || m === models.length - 1) throw err;
+        careReport(`Model ${models[m]} geeft geen antwoord, door naar ${models[m + 1]}`);
+        continue;
+      }
+      silent = 0;
       if (res.ok) {
         if (m > 0) geminiModel = [models[m], ...models.filter(x => x !== models[m])]; // remember what worked
         break;
       }
       if (!GEMINI_BUSY.includes(res.status) && res.status !== 429 && res.status !== 404) break;
+      if (m < models.length - 1) careReport(`Model ${models[m]} lukt niet, door naar ${models[m + 1]}`);
     }
     if (!res.ok) {
       const base = GEMINI_BUSY.includes(res.status) ? "Gemini gaf geen antwoord"
@@ -1609,6 +1648,7 @@ ${JSON.stringify(list.map(p => ({ id: p.id, naam: p.name || "", latijnseNaam: p.
     }
     const json = await res.json();
     let text = ((json.candidates || [])[0]?.content?.parts || []).map(pt => pt.text || "").join("").trim();
+    careReport("Antwoord ontvangen, gegevens uitlezen");
     try { return parseCareRows(text, list, true).care; }
     catch { throw new Error("het antwoord van Gemini was niet leesbaar"); }
   }
@@ -1620,6 +1660,8 @@ ${JSON.stringify(list.map(p => ({ id: p.id, naam: p.name || "", latijnseNaam: p.
     if (!name && !latin) { st.textContent = "Vul eerst een naam in."; return; }
     st.textContent = "Bezig met ophalen\u2026";
     $("careFetchBtn").disabled = true;
+    const started = Date.now();
+    careReport = (msg) => { st.textContent = `Bezig (${Math.round((Date.now() - started) / 1000)} s): ${msg}`; };
     try {
       const care = (await fetchCare([{ id: "x", name, latin, variety: $("plantVariety").value.trim() }])).x;
       if (!care) { st.textContent = "Deze plant is niet herkend. Vul de gegevens zelf in."; return; }
@@ -1632,7 +1674,7 @@ ${JSON.stringify(list.map(p => ({ id: p.id, naam: p.name || "", latijnseNaam: p.
       updateCareBlockSummary();
       st.textContent = "Ingevuld met AI. Kijk het na en kies Opslaan.";
     } catch (err) { st.textContent = "Ophalen mislukt: " + err.message; }
-    finally { $("careFetchBtn").disabled = false; }
+    finally { $("careFetchBtn").disabled = false; careReport = () => {}; }
   };
 
   // Voor alle planten tegelijk.
@@ -1659,12 +1701,16 @@ ${JSON.stringify(list.map(p => ({ id: p.id, naam: p.name || "", latijnseNaam: p.
     $("careSummary").textContent = n === 0 ? "Bij alle planten is de verzorging al ingevuld."
       : n === 1 ? "Voor 1 plant worden gegevens opgehaald." : `Voor ${n} planten worden gegevens opgehaald.`;
     $("careStartBtn").disabled = careBusy || n === 0;
+    $("careStartBtn").textContent = careBusy ? "Bezig\u2026" : "Ophalen";
   }
   $("careAllBtn").onclick = () => {
     $("careOverwrite").checked = false;
     $("careClaudeStatus").textContent = "";
     $("careClaudePrompt").style.display = "none";
-    $("careProgress").textContent = localStorage.getItem("geminiApiKey") ? "" : "Vul eerst je Gemini API-key in bij Instellingen.";
+    if (!careBusy) {
+      $("careProgressText").textContent = localStorage.getItem("geminiApiKey") ? "" : "Vul eerst je Gemini API-key in bij Instellingen.";
+      $("careLog").innerHTML = ""; $("careLog").style.display = "none";
+    }
     careSummary();
     $("careModalBackdrop").classList.add("active");
   };
@@ -1672,30 +1718,59 @@ ${JSON.stringify(list.map(p => ({ id: p.id, naam: p.name || "", latijnseNaam: p.
   const closeCareModal = () => $("careModalBackdrop").classList.remove("active");
   $("closeCareModal").onclick = closeCareModal;
   $("careCancelBtn").onclick = closeCareModal;
+  function careLogLine(msg, isError) {
+    const log = $("careLog");
+    log.style.display = "block";
+    const line = document.createElement("div");
+    if (isError) line.className = "err";
+    const t = document.createElement("span");
+    t.className = "t";
+    t.textContent = new Date().toLocaleTimeString("nl-NL", { hour: "2-digit", minute: "2-digit", second: "2-digit" });
+    line.appendChild(t);
+    line.appendChild(document.createTextNode(msg));
+    log.appendChild(line);
+    log.scrollTop = log.scrollHeight;
+  }
   $("careStartBtn").onclick = async () => {
     const overwrite = $("careOverwrite").checked;
     const targets = careTargets(overwrite);
     if (!targets.length || careBusy) return;
     careBusy = true; careSummary();
-    const prog = $("careProgress");
-    let done = 0, updated = 0, unknown = 0;
+    const head = $("careProgressText");
+    $("careLog").innerHTML = "";
+    $("careSpinner").style.display = "inline-block";
+    let done = 0, updated = 0, unknown = 0, step = "starten";
+    const started = Date.now();
+    const showHead = () => { head.textContent = `Bezig: ${done} van ${targets.length} planten klaar \u00b7 ${Math.round((Date.now() - started) / 1000)} s \u00b7 ${step}`; };
+    const ticker = setInterval(showHead, 1000);
+    careReport = (msg, isError) => { step = msg; careLogLine(msg, isError); showHead(); };
+    careReport(`Start: ${nPlants(targets.length)} in groepen van 10`);
     try {
-      for (let i = 0; i < targets.length; i += 15) {
-        const chunk = targets.slice(i, i + 15);
-        prog.textContent = `Bezig\u2026 ${done} van ${targets.length}`;
+      for (let i = 0; i < targets.length; i += 10) {
+        const chunk = targets.slice(i, i + 10);
+        careReport(`Planten ${i + 1} t/m ${i + chunk.length} opvragen: ${chunk.map(p => p.name || p.latin).join(", ")}`);
         const care = await fetchCare(chunk);
+        let n = 0;
         for (const p of chunk) {
           done++;
           const c = care[p.id];
           if (!c) { unknown++; continue; }
           const patch = carePatch(p, c, overwrite);
-          if (Object.keys(patch).length) { await updateDoc(doc(plantsCol, p.id), patch); updated++; }
+          if (Object.keys(patch).length) { await updateDoc(doc(plantsCol, p.id), patch); updated++; n++; }
         }
+        careReport(`Opgeslagen: ${nPlants(n)} bijgewerkt in deze groep`);
       }
-      prog.textContent = `Klaar: ${updated} ${updated === 1 ? "plant" : "planten"} bijgewerkt` + (unknown ? `, ${unknown} niet herkend` : "") + ".";
+      head.textContent = `Klaar: ${updated} ${updated === 1 ? "plant" : "planten"} bijgewerkt` + (unknown ? `, ${unknown} niet herkend` : "") + ".";
+      careLogLine(head.textContent);
     } catch (err) {
-      prog.textContent = `Gestopt na ${done} van ${targets.length}: ${err.message}.`;
-    } finally { careBusy = false; careSummary(); }
+      head.textContent = `Gestopt na ${done} van ${targets.length}: ${err.message}.`;
+      careLogLine(head.textContent, true);
+    } finally {
+      clearInterval(ticker);
+      careReport = () => {};
+      $("careSpinner").style.display = "none";
+      careBusy = false; careSummary();
+    }
   };
 
   // ---------- Verzorging via Claude: opdracht maken, bestand importeren (fix-14) ----------
@@ -1823,7 +1898,7 @@ ${JSON.stringify(list.map(p => ({ id: p.id, naam: p.name || "", latijnseNaam: p.
   function placeholderThumb() { return "data:image/svg+xml;utf8," + encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" width="44" height="44"><rect width="44" height="44" fill="#F0EBDD"/><text x="22" y="27" font-size="20" text-anchor="middle">🌱</text></svg>'); }
 </script>
 <script>
-  // fix-14: installeerbare app
+  // fix-15: installeerbare app
   if ("serviceWorker" in navigator) {
     window.addEventListener("load", () => navigator.serviceWorker.register("./sw.js").catch(() => {}));
   }
