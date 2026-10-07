@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<!-- fix-15 -->
+<!-- fix-16 -->
 <title>Mijn Tuin — Plantenregister</title>
 <meta name="theme-color" content="#2C4A3B">
 <link rel="manifest" href="manifest.webmanifest">
@@ -440,6 +440,8 @@
         <button class="sort-btn active" data-sort="naam">Naam</button>
         <button class="sort-btn" data-sort="vak">Plantvak</button>
         <button class="sort-btn" data-sort="soort">Soort</button>
+        <button class="sort-btn" data-sort="bloei">Bloei</button>
+        <button class="sort-btn" data-sort="snoei">Snoei</button>
       </div>
       <button class="btn-outline" id="careAllBtn" style="width:100%;margin-bottom:14px;">Verzorging ophalen voor alle planten</button>
       <div id="plantList"></div>
@@ -663,12 +665,13 @@
   </div>
 </div>
 
-<footer class="app-version mono">versie fix-15</footer>
+<footer class="app-version mono">versie fix-16</footer>
 
 <div class="toast" id="toast"></div>
 
 <!-- Firebase SDK -->
 <script type="module">
+  // fix-16: lijst sorteren op bloei of snoei, met bloeiers of te snoeien planten bovenaan
   // fix-15: zichtbaar logboek, teller en tijdslimiet bij verzorging ophalen
   // fix-14: verzorging ophalen via een opdracht voor Claude en een bestand om te importeren
   // fix-13: plant toevoegen als plusknop in de bovenbalk
@@ -1020,6 +1023,15 @@
   };
 
   // ---------- Month wheel ----------
+  function selectMonth(m) {
+    selectedMonth = m;
+    document.querySelectorAll(".wheel-month").forEach(w => w.classList.toggle("active", Number(w.dataset.month) === selectedMonth));
+    $("wheelCenter").innerHTML = selectedMonth === null ? "Alle<br>planten" : MONTHS[selectedMonth].toUpperCase();
+    renderGrid();
+    renderList();
+  }
+  // Month used when sorting on bloom or pruning: the chosen month, otherwise the current one.
+  const sortMonth = () => selectedMonth !== null ? selectedMonth : new Date().getMonth();
   const wheel = $("wheel");
   MONTHS.forEach((m, i) => {
     const angle = (i / 12) * 2 * Math.PI - Math.PI / 2;
@@ -1033,13 +1045,7 @@
     el.style.top = y + "px";
     el.style.margin = "0";
     el.dataset.month = i;
-    el.onclick = () => {
-      selectedMonth = (selectedMonth === i) ? null : i;
-      document.querySelectorAll(".wheel-month").forEach(w => w.classList.toggle("active", Number(w.dataset.month) === selectedMonth));
-      $("wheelCenter").innerHTML = selectedMonth === null ? "Alle<br>planten" : m.toUpperCase();
-      renderGrid();
-      renderList();
-    };
+    el.onclick = () => selectMonth(selectedMonth === i ? null : i);
     wheel.appendChild(el);
   });
 
@@ -1135,11 +1141,18 @@
       if (x !== y) { if (!x) return 1; if (!y) return -1; return x.localeCompare(y, "nl"); }
       return byName(a, b);
     };
+    if (key === "bloei" || key === "snoei") return (a, b) => {
+      const m = sortMonth();
+      const rank = (p) => { const st = monthStatus(p, m); return (key === "bloei" ? st.blooming : st.pruning) ? 0 : 1; };
+      return rank(a) - rank(b) || byName(a, b);
+    };
     return byName;
   }
   function groupTitle(p) {
     if (sortKey === "vak") return `${ZONE_LABEL[plantZone(p)]} · ${plantVak(p) ? "vak " + plantVak(p) : "geen vak"}`;
     if (sortKey === "soort") return p.category || "Geen soort";
+    if (sortKey === "bloei") return (monthStatus(p, sortMonth()).blooming ? "Bloeit in " : "Bloeit niet in ") + MONTHS[sortMonth()];
+    if (sortKey === "snoei") return (monthStatus(p, sortMonth()).pruning ? "Snoeien in " : "Niet snoeien in ") + MONTHS[sortMonth()];
     return null;
   }
   function vakBadge(p) {
@@ -1204,17 +1217,19 @@
     b.onclick = () => {
       if (sortKey === b.dataset.sort) sortDir = -sortDir;
       else { sortKey = b.dataset.sort; sortDir = 1; }
+      // Bloei and Snoei are about one month: without a chosen month, take the current one (also lights up the wheel).
+      if ((sortKey === "bloei" || sortKey === "snoei") && selectedMonth === null) { selectMonth(new Date().getMonth()); return; }
       renderList();
     };
   });
   $("searchBox").oninput = renderList;
   renderList();
 
-  function monthStatus(p) {
+  function monthStatus(p, m = selectedMonth) {
     let blooming = false, pruning = false;
-    if (selectedMonth !== null) {
-      if (p.bloomStart != null && p.bloomEnd != null) blooming = monthInRange(selectedMonth, p.bloomStart, p.bloomEnd);
-      if (Array.isArray(p.pruneMonths)) pruning = p.pruneMonths.includes(selectedMonth);
+    if (m !== null) {
+      if (p.bloomStart != null && p.bloomEnd != null) blooming = monthInRange(m, p.bloomStart, p.bloomEnd);
+      if (Array.isArray(p.pruneMonths)) pruning = p.pruneMonths.includes(m);
     }
     return { blooming, pruning };
   }
@@ -1898,7 +1913,7 @@ ${JSON.stringify(list.map(p => ({ id: p.id, naam: p.name || "", latijnseNaam: p.
   function placeholderThumb() { return "data:image/svg+xml;utf8," + encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" width="44" height="44"><rect width="44" height="44" fill="#F0EBDD"/><text x="22" y="27" font-size="20" text-anchor="middle">🌱</text></svg>'); }
 </script>
 <script>
-  // fix-15: installeerbare app
+  // fix-16: installeerbare app
   if ("serviceWorker" in navigator) {
     window.addEventListener("load", () => navigator.serviceWorker.register("./sw.js").catch(() => {}));
   }
