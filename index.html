@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<!-- fix-12 -->
+<!-- fix-13 -->
 <title>Mijn Tuin — Plantenregister</title>
 <meta name="theme-color" content="#2C4A3B">
 <link rel="manifest" href="manifest.webmanifest">
@@ -180,6 +180,21 @@
   .row-status{display:flex;gap:6px;align-items:center;flex-shrink:0;}
   .st-ico{width:22px;height:22px;display:block;}
   .legend .st-ico{width:15px;height:15px;}
+  /* Plusknop in de bovenbalk (fix-13) */
+  header .brand{min-width:0;}
+  header h1{white-space:nowrap;}
+  .btn-add{
+    width:38px;height:38px;padding:0;border-radius:50%;flex-shrink:0;
+    background:var(--ochre);color:var(--ink);
+    display:none;align-items:center;justify-content:center;
+  }
+  .btn-add svg{width:20px;height:20px;display:block;}
+  @media(max-width:480px){
+    header{padding:12px 12px;}
+    header .actions{gap:6px;}
+    header .btn-ghost{padding:8px 9px;font-size:0.78rem;}
+  }
+  @media(max-width:380px){ header .brand svg{display:none;} }
   .map-note{font-size:0.72rem;color:#8a8a78;margin:6px 0 0;}
 
   /* Month wheel */
@@ -350,6 +365,7 @@
     <h1>Mijn Tuin</h1>
   </div>
   <div class="actions">
+    <button class="btn-add" id="addPlantBtn" aria-label="Plant toevoegen" title="Plant toevoegen"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.8" stroke-linecap="round" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg></button>
     <button class="btn-ghost" id="settingsBtn" style="display:none;">Instellingen</button>
     <button class="btn-ghost" id="signOutBtn" style="display:none;">Uitloggen</button>
   </div>
@@ -407,7 +423,6 @@
         <button class="sort-btn" data-sort="vak">Plantvak</button>
         <button class="sort-btn" data-sort="soort">Soort</button>
       </div>
-      <button class="btn-primary" id="addPlantBtn" style="width:100%;margin-bottom:8px;">+ Plant toevoegen</button>
       <button class="btn-outline" id="careAllBtn" style="width:100%;margin-bottom:14px;">Verzorging ophalen voor alle planten</button>
       <div id="plantList"></div>
       <div id="emptyList" style="display:none;">Nog geen planten geregistreerd.</div>
@@ -604,12 +619,13 @@
   </div>
 </div>
 
-<footer class="app-version mono">versie fix-12</footer>
+<footer class="app-version mono">versie fix-13</footer>
 
 <div class="toast" id="toast"></div>
 
 <!-- Firebase SDK -->
 <script type="module">
+  // fix-13: plant toevoegen als plusknop in de bovenbalk
   // fix-12: terugknop sluit eerst het open venster en vraagt daarna om een tweede keer drukken
   // fix-11: bloei en snoei van de gekozen maand ook in de plantenlijst, als bloem en snoeischaar
   // fix-10: afmetingen van voortuin en achtertuin staan onder Instellingen
@@ -737,6 +753,7 @@
       signedOut.style.display = "none";
       main.classList.add("active");
       $("settingsBtn").style.display = "inline-block";
+      $("addPlantBtn").style.display = "inline-flex";
       $("signOutBtn").style.display = "inline-block";
       listenPlants();
       listenGarden();
@@ -744,6 +761,7 @@
       signedOut.style.display = "block";
       main.classList.remove("active");
       $("settingsBtn").style.display = "none";
+      $("addPlantBtn").style.display = "none";
       $("signOutBtn").style.display = "none";
     }
   });
@@ -1672,7 +1690,7 @@ ${JSON.stringify(list.map(p => ({ id: p.id, naam: p.name || "", latijnseNaam: p.
   function placeholderThumb() { return "data:image/svg+xml;utf8," + encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" width="44" height="44"><rect width="44" height="44" fill="#F0EBDD"/><text x="22" y="27" font-size="20" text-anchor="middle">🌱</text></svg>'); }
 </script>
 <script>
-  // fix-12: installeerbare app
+  // fix-13: installeerbare app
   if ("serviceWorker" in navigator) {
     window.addEventListener("load", () => navigator.serviceWorker.register("./sw.js").catch(() => {}));
   }
