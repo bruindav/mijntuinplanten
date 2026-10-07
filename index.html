@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<!-- fix-11 -->
+<!-- fix-12 -->
 <title>Mijn Tuin — Plantenregister</title>
 <meta name="theme-color" content="#2C4A3B">
 <link rel="manifest" href="manifest.webmanifest">
@@ -604,12 +604,13 @@
   </div>
 </div>
 
-<footer class="app-version mono">versie fix-11</footer>
+<footer class="app-version mono">versie fix-12</footer>
 
 <div class="toast" id="toast"></div>
 
 <!-- Firebase SDK -->
 <script type="module">
+  // fix-12: terugknop sluit eerst het open venster en vraagt daarna om een tweede keer drukken
   // fix-11: bloei en snoei van de gekozen maand ook in de plantenlijst, als bloem en snoeischaar
   // fix-10: afmetingen van voortuin en achtertuin staan onder Instellingen
   // fix-9: ook de lichtere flash-lite-modellen van Gemini proberen
@@ -1613,6 +1614,36 @@ ${JSON.stringify(list.map(p => ({ id: p.id, naam: p.name || "", latijnseNaam: p.
     } finally { careBusy = false; careSummary(); }
   };
 
+  // ---------- Terugknop ----------
+  // One extra history entry sits "in front of" the app. Pressing back removes it, which we notice:
+  // an open window is closed, otherwise a hint is shown. Only a second press shortly after leaves the app.
+  let lastBackPress = 0;
+  const hasGuard = () => !!(history.state && history.state.mijnTuinGuard);
+  function pushGuard() {
+    if (!hasGuard()) { try { history.pushState({ mijnTuinGuard: true }, ""); } catch {} }
+  }
+  function closeTopWindow() {
+    const open = (id) => $(id).classList.contains("active");
+    if (open("lightbox")) { closeLightbox(); return true; }
+    if (open("careModalBackdrop")) { closeCareModal(); return true; }
+    if (open("vakModalBackdrop")) { closeVakModal(); return true; }
+    if (open("settingsModalBackdrop")) { $("settingsModalBackdrop").classList.remove("active"); return true; }
+    if (open("plantModalBackdrop")) { closePlantModal(); return true; }
+    return false;
+  }
+  window.addEventListener("popstate", () => {
+    if (hasGuard()) return; // moved onto the guard entry itself, nothing to do
+    if (closeTopWindow()) { pushGuard(); return; }
+    if (Date.now() - lastBackPress < 2500) { history.back(); return; } // second press: really leave
+    lastBackPress = Date.now();
+    pushGuard();
+    toast("Druk nog een keer op terug om de app te sluiten");
+  });
+  // Browsers only honour history entries added after the user has touched the page, so (re)add it then too.
+  pushGuard();
+  window.addEventListener("pointerdown", pushGuard, true);
+  window.addEventListener("keydown", pushGuard, true);
+
   // ---------- Helpers ----------
   function fileToDataURL(file, maxDim) {
     return new Promise((resolve, reject) => {
@@ -1641,7 +1672,7 @@ ${JSON.stringify(list.map(p => ({ id: p.id, naam: p.name || "", latijnseNaam: p.
   function placeholderThumb() { return "data:image/svg+xml;utf8," + encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" width="44" height="44"><rect width="44" height="44" fill="#F0EBDD"/><text x="22" y="27" font-size="20" text-anchor="middle">🌱</text></svg>'); }
 </script>
 <script>
-  // fix-11: installeerbare app
+  // fix-12: installeerbare app
   if ("serviceWorker" in navigator) {
     window.addEventListener("load", () => navigator.serviceWorker.register("./sw.js").catch(() => {}));
   }
