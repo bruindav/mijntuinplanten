@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<!-- fix-13 -->
+<!-- fix-14 -->
 <title>Mijn Tuin — Plantenregister</title>
 <meta name="theme-color" content="#2C4A3B">
 <link rel="manifest" href="manifest.webmanifest">
@@ -195,6 +195,14 @@
     header .btn-ghost{padding:8px 9px;font-size:0.78rem;}
   }
   @media(max-width:380px){ header .brand svg{display:none;} }
+  /* Via Claude (fix-14) */
+  #careClaudeBlock{margin-top:18px;background:var(--paper);}
+  #careClaudeBlock ol{margin:0 0 12px;padding-left:18px;font-size:0.82rem;line-height:1.5;color:#4a4a40;}
+  #careClaudeBlock textarea{width:100%;font-family:'IBM Plex Mono',monospace;font-size:0.7rem;border:1px solid var(--line);border-radius:8px;padding:8px;background:white;resize:vertical;}
+  #careClaudeBlock .care-fetch button{flex:1;min-width:130px;}
+  #careClaudeBlock details{font-size:0.8rem;margin-bottom:10px;}
+  #careClaudeBlock details summary{cursor:pointer;color:var(--moss);font-weight:600;margin-bottom:6px;}
+  #careClaudeStatus{font-size:0.82rem;color:#4a4a40;min-height:1.2em;padding-bottom:12px;}
   .map-note{font-size:0.72rem;color:#8a8a78;margin:6px 0 0;}
 
   /* Month wheel */
@@ -583,6 +591,31 @@
       <button class="btn-outline" id="careCancelBtn">Sluiten</button>
       <button class="btn-primary" id="careStartBtn">Ophalen</button>
     </div>
+    <details class="block" id="careClaudeBlock">
+      <summary><span class="block-title">Lukt het niet? Via Claude</span></summary>
+      <div class="block-body">
+        <ol>
+          <li>Maak de opdracht (kopiëren of als bestand).</li>
+          <li>Plak hem in een chat met Claude, of voeg het bestand toe.</li>
+          <li>Claude geeft het bestand <span class="mono">tuin-verzorging.json</span> terug. Importeer dat hier.</li>
+        </ol>
+        <div class="care-fetch">
+          <button class="btn-outline" id="careClaudeCopyBtn" type="button">Opdracht kopiëren</button>
+          <button class="btn-outline" id="careClaudeFileBtn" type="button">Opdracht als bestand</button>
+        </div>
+        <textarea id="careClaudePrompt" rows="4" readonly style="display:none;margin-bottom:12px;" aria-label="Opdracht voor Claude"></textarea>
+        <div class="care-fetch">
+          <button class="btn-primary" id="careImportBtn" type="button">Bestand importeren</button>
+          <input type="file" id="careImportFile" accept=".json,.txt,application/json,text/plain" style="display:none;">
+        </div>
+        <details>
+          <summary>Of plak het antwoord van Claude</summary>
+          <textarea id="careImportText" rows="4" placeholder='[{"id": "...", "bloeiVan": 6, ...}]' aria-label="Antwoord van Claude"></textarea>
+          <button class="btn-outline" id="careImportTextBtn" type="button" style="margin-top:6px;">Geplakte tekst importeren</button>
+        </details>
+        <div id="careClaudeStatus"></div>
+      </div>
+    </details>
   </div>
 </div>
 
@@ -619,12 +652,13 @@
   </div>
 </div>
 
-<footer class="app-version mono">versie fix-13</footer>
+<footer class="app-version mono">versie fix-14</footer>
 
 <div class="toast" id="toast"></div>
 
 <!-- Firebase SDK -->
 <script type="module">
+  // fix-14: verzorging ophalen via een opdracht voor Claude en een bestand om te importeren
   // fix-13: plant toevoegen als plusknop in de bovenbalk
   // fix-12: terugknop sluit eerst het open venster en vraagt daarna om een tweede keer drukken
   // fix-11: bloei en snoei van de gekozen maand ook in de plantenlijst, als bloem en snoeischaar
@@ -1486,15 +1520,14 @@
   }
   const monthIdx = (v) => { const n = Number(v); return Number.isInteger(n) && n >= 1 && n <= 12 ? n - 1 : null; };
 
-  // list: [{ id, name, latin, variety }] -> { id: { bloomStart, bloomEnd, pruneMonths, pruningAdvice } }
-  async function fetchCare(list) {
-    const key = localStorage.getItem("geminiApiKey");
-    if (!key) throw new Error("vul eerst je Gemini API-key in bij Instellingen");
-    const models = await pickGeminiModels(key);
-    const prompt = `Je bent een Nederlandse tuinexpert. Geef voor elke plant hieronder de gegevens voor een tuin in Nederland.
-Antwoord uitsluitend met een JSON-array, één object per plant, in dezelfde volgorde, met precies deze velden:
+  // The question that is put to the AI. viaClaude: worded as a task that ends in a file to import.
+  function carePromptText(list, viaClaude) {
+    return `Je bent een Nederlandse tuinexpert. Geef voor elke plant hieronder de gegevens voor een tuin in Nederland.
+${viaClaude
+  ? 'Lever het resultaat als een bestand met de naam "tuin-verzorging.json". Het bestand bevat uitsluitend een JSON-array, zonder uitleg of opmaak eromheen, met één object per plant, in dezelfde volgorde, met precies deze velden:'
+  : "Antwoord uitsluitend met een JSON-array, één object per plant, in dezelfde volgorde, met precies deze velden:"}
 - "id": het id van de plant, ongewijzigd
-- "herkend": true als je de plant kent, anders false
+${viaClaude ? '- "naam": de naam van de plant, ongewijzigd\n' : ""}- "herkend": true als je de plant kent, anders false
 - "bloeiVan" en "bloeiTot": maandnummer 1-12 van begin en einde van de bloei, of null als de plant niet (zichtbaar) bloeit of je het niet weet
 - "snoeimaanden": array met maandnummers 1-12 waarin je snoeit of terugknipt; leeg als snoeien niet nodig is
 - "snoeiadvies": praktisch snoeiadvies in het Nederlands, hooguit twee korte zinnen; schrijf "Snoeien is niet nodig." als dat zo is
@@ -1504,6 +1537,50 @@ Verzin niets: bij twijfel "herkend": false.
 
 Planten:
 ${JSON.stringify(list.map(p => ({ id: p.id, naam: p.name || "", latijnseNaam: p.latin || "", varieteitOfKleur: p.variety || "" })))}`;
+  }
+
+  // Reads the AI's answer. Rows are matched to plants by id, otherwise by a unique name,
+  // and (only when positional is true) by their place in the list.
+  function parseCareRows(text, list, positional) {
+    const t = String(text).replace(/^\uFEFF/, "").trim().replace(/^```(?:json)?\s*/i, "").replace(/```\s*$/, "");
+    const a = t.indexOf("["), b = t.lastIndexOf("]");
+    let rows;
+    try { rows = JSON.parse(a !== -1 && b > a ? t.slice(a, b + 1) : t); }
+    catch { rows = JSON.parse(t); }
+    if (!Array.isArray(rows)) rows = rows.planten || rows.plants || [rows];
+    const care = {};
+    let unknown = 0, unmatched = 0;
+    const lc = (v) => String(v || "").trim().toLowerCase();
+    rows.forEach((r, i) => {
+      if (!r || typeof r !== "object") { unmatched++; return; }
+      let id = list.some(p => p.id === r.id) ? r.id : null;
+      if (!id && lc(r.naam)) {
+        const same = list.filter(p => lc(p.name) === lc(r.naam));
+        if (same.length === 1) id = same[0].id;
+      }
+      if (!id && positional && rows.length === list.length) id = list[i].id;
+      if (!id) { unmatched++; return; }
+      if (r.herkend === false) { unknown++; return; }
+      let bs = monthIdx(r.bloeiVan), be = monthIdx(r.bloeiTot);
+      if (bs === null) bs = be;
+      if (be === null) be = bs;
+      care[id] = {
+        bloomStart: bs, bloomEnd: be,
+        pruneMonths: [...new Set((Array.isArray(r.snoeimaanden) ? r.snoeimaanden : []).map(monthIdx).filter(m => m !== null))].sort((x, y) => x - y),
+        pruningAdvice: typeof r.snoeiadvies === "string" ? r.snoeiadvies.trim() : "",
+        fertilizing: typeof r.bemesting === "string" ? r.bemesting.trim() : "",
+        soil: typeof r.grondsoort === "string" ? r.grondsoort.trim() : "",
+      };
+    });
+    return { care, total: rows.length, unknown, unmatched };
+  }
+
+  // list: [{ id, name, latin, variety }] -> { id: { bloomStart, bloomEnd, pruneMonths, pruningAdvice } }
+  async function fetchCare(list) {
+    const key = localStorage.getItem("geminiApiKey");
+    if (!key) throw new Error("vul eerst je Gemini API-key in bij Instellingen");
+    const models = await pickGeminiModels(key);
+    const prompt = carePromptText(list, false);
     // Try the best model first (twice); when it stays overloaded or over its limit, move on to the next one.
     let res;
     const tried = [];
@@ -1532,26 +1609,8 @@ ${JSON.stringify(list.map(p => ({ id: p.id, naam: p.name || "", latijnseNaam: p.
     }
     const json = await res.json();
     let text = ((json.candidates || [])[0]?.content?.parts || []).map(pt => pt.text || "").join("").trim();
-    text = text.replace(/^```(?:json)?\s*/i, "").replace(/```\s*$/, "");
-    let rows;
-    try { rows = JSON.parse(text); } catch { throw new Error("het antwoord van Gemini was niet leesbaar"); }
-    if (!Array.isArray(rows)) rows = rows.planten || rows.plants || [rows];
-    const out = {};
-    rows.forEach((r, i) => {
-      const id = list.some(p => p.id === r.id) ? r.id : (rows.length === list.length ? list[i].id : null);
-      if (!id || r.herkend === false) return;
-      let bs = monthIdx(r.bloeiVan), be = monthIdx(r.bloeiTot);
-      if (bs === null) bs = be;
-      if (be === null) be = bs;
-      out[id] = {
-        bloomStart: bs, bloomEnd: be,
-        pruneMonths: [...new Set((Array.isArray(r.snoeimaanden) ? r.snoeimaanden : []).map(monthIdx).filter(m => m !== null))].sort((a, b) => a - b),
-        pruningAdvice: typeof r.snoeiadvies === "string" ? r.snoeiadvies.trim() : "",
-        fertilizing: typeof r.bemesting === "string" ? r.bemesting.trim() : "",
-        soil: typeof r.grondsoort === "string" ? r.grondsoort.trim() : "",
-      };
-    });
-    return out;
+    try { return parseCareRows(text, list, true).care; }
+    catch { throw new Error("het antwoord van Gemini was niet leesbaar"); }
   }
 
   // In het plantvenster: velden invullen, daarna zelf nakijken en opslaan.
@@ -1582,6 +1641,18 @@ ${JSON.stringify(list.map(p => ({ id: p.id, naam: p.name || "", latijnseNaam: p.
   const fertEmpty = (p) => !(p.fertilizing || "").trim();
   const soilEmpty = (p) => !(p.soil || "").trim();
   const careTargets = (overwrite) => plants.filter(p => (p.name || p.latin) && (overwrite || bloomEmpty(p) || pruneEmpty(p) || fertEmpty(p) || soilEmpty(p)));
+  // What to write for one plant: only empty fields, unless overwrite is on.
+  function carePatch(p, c, overwrite) {
+    const patch = {};
+    if ((overwrite || bloomEmpty(p)) && c.bloomStart !== null) { patch.bloomStart = c.bloomStart; patch.bloomEnd = c.bloomEnd; }
+    if (overwrite || pruneEmpty(p)) {
+      if (c.pruneMonths.length) patch.pruneMonths = c.pruneMonths;
+      if (c.pruningAdvice) patch.pruningAdvice = c.pruningAdvice;
+    }
+    if ((overwrite || fertEmpty(p)) && c.fertilizing) patch.fertilizing = c.fertilizing;
+    if ((overwrite || soilEmpty(p)) && c.soil) patch.soil = c.soil;
+    return patch;
+  }
   let careBusy = false;
   function careSummary() {
     const n = careTargets($("careOverwrite").checked).length;
@@ -1591,6 +1662,8 @@ ${JSON.stringify(list.map(p => ({ id: p.id, naam: p.name || "", latijnseNaam: p.
   }
   $("careAllBtn").onclick = () => {
     $("careOverwrite").checked = false;
+    $("careClaudeStatus").textContent = "";
+    $("careClaudePrompt").style.display = "none";
     $("careProgress").textContent = localStorage.getItem("geminiApiKey") ? "" : "Vul eerst je Gemini API-key in bij Instellingen.";
     careSummary();
     $("careModalBackdrop").classList.add("active");
@@ -1615,14 +1688,7 @@ ${JSON.stringify(list.map(p => ({ id: p.id, naam: p.name || "", latijnseNaam: p.
           done++;
           const c = care[p.id];
           if (!c) { unknown++; continue; }
-          const patch = {};
-          if ((overwrite || bloomEmpty(p)) && c.bloomStart !== null) { patch.bloomStart = c.bloomStart; patch.bloomEnd = c.bloomEnd; }
-          if (overwrite || pruneEmpty(p)) {
-            if (c.pruneMonths.length) patch.pruneMonths = c.pruneMonths;
-            if (c.pruningAdvice) patch.pruningAdvice = c.pruningAdvice;
-          }
-          if ((overwrite || fertEmpty(p)) && c.fertilizing) patch.fertilizing = c.fertilizing;
-          if ((overwrite || soilEmpty(p)) && c.soil) patch.soil = c.soil;
+          const patch = carePatch(p, c, overwrite);
           if (Object.keys(patch).length) { await updateDoc(doc(plantsCol, p.id), patch); updated++; }
         }
       }
@@ -1631,6 +1697,73 @@ ${JSON.stringify(list.map(p => ({ id: p.id, naam: p.name || "", latijnseNaam: p.
       prog.textContent = `Gestopt na ${done} van ${targets.length}: ${err.message}.`;
     } finally { careBusy = false; careSummary(); }
   };
+
+  // ---------- Verzorging via Claude: opdracht maken, bestand importeren (fix-14) ----------
+  function claudePrompt() {
+    const list = careTargets($("careOverwrite").checked);
+    const st = $("careClaudeStatus");
+    if (!list.length) { st.textContent = "Bij alle planten is de verzorging al ingevuld. Zet het vinkje \u2018vervangen\u2019 aan om toch alles op te vragen."; return null; }
+    const text = carePromptText(list, true);
+    const ta = $("careClaudePrompt");
+    ta.value = text;
+    ta.style.display = "block";
+    return { text, n: list.length, ta };
+  }
+  const nPlants = (n) => n === 1 ? "1 plant" : `${n} planten`;
+  $("careClaudeCopyBtn").onclick = async () => {
+    const pr = claudePrompt();
+    if (!pr) return;
+    let ok = false;
+    try { await navigator.clipboard.writeText(pr.text); ok = true; }
+    catch { try { pr.ta.focus(); pr.ta.select(); ok = document.execCommand("copy"); } catch {} }
+    $("careClaudeStatus").textContent = ok
+      ? `Opdracht voor ${nPlants(pr.n)} gekopieerd. Plak hem in een chat met Claude.`
+      : "Kopiëren lukte niet automatisch. Selecteer de tekst hierboven en kopieer hem zelf.";
+  };
+  $("careClaudeFileBtn").onclick = () => {
+    const pr = claudePrompt();
+    if (!pr) return;
+    const url = URL.createObjectURL(new Blob([pr.text], { type: "text/plain;charset=utf-8" }));
+    const a = document.createElement("a");
+    a.href = url; a.download = "tuin-opdracht.txt";
+    document.body.appendChild(a); a.click(); a.remove();
+    setTimeout(() => URL.revokeObjectURL(url), 2000);
+    $("careClaudeStatus").textContent = `Opdracht voor ${nPlants(pr.n)} opgeslagen als tuin-opdracht.txt. Voeg dat bestand toe in een chat met Claude.`;
+  };
+  async function importCare(text) {
+    const st = $("careClaudeStatus");
+    if (!String(text).trim()) { st.textContent = "Er is niets om te importeren."; return; }
+    let parsed;
+    try { parsed = parseCareRows(text, plants, false); }
+    catch { st.textContent = "Importeren mislukt: dit is geen geldig bestand met verzorgingsgegevens."; return; }
+    const overwrite = $("careOverwrite").checked;
+    let updated = 0, same = 0;
+    st.textContent = "Bezig met importeren\u2026";
+    try {
+      for (const p of plants.slice()) {
+        const c = parsed.care[p.id];
+        if (!c) continue;
+        const patch = carePatch(p, c, overwrite);
+        if (Object.keys(patch).length) { await updateDoc(doc(plantsCol, p.id), patch); updated++; } else same++;
+      }
+    } catch (err) { st.textContent = `Importeren gestopt na ${nPlants(updated)}: ${err.message}.`; return; }
+    const parts = [`${nPlants(updated)} bijgewerkt`];
+    if (same) parts.push(`${same} al ingevuld (niets gewijzigd)`);
+    if (parsed.unknown) parts.push(`${parsed.unknown} niet herkend`);
+    if (parsed.unmatched) parts.push(`${parsed.unmatched} niet gevonden in je tuin`);
+    st.textContent = "Ge\u00efmporteerd: " + parts.join(", ") + ".";
+    careSummary();
+  }
+  $("careImportBtn").onclick = () => $("careImportFile").click();
+  $("careImportFile").onchange = async (e) => {
+    const file = e.target.files[0];
+    e.target.value = "";
+    if (!file) return;
+    let text = "";
+    try { text = await file.text(); } catch { $("careClaudeStatus").textContent = "Het bestand kon niet worden gelezen."; return; }
+    await importCare(text);
+  };
+  $("careImportTextBtn").onclick = () => importCare($("careImportText").value);
 
   // ---------- Terugknop ----------
   // One extra history entry sits "in front of" the app. Pressing back removes it, which we notice:
@@ -1690,7 +1823,7 @@ ${JSON.stringify(list.map(p => ({ id: p.id, naam: p.name || "", latijnseNaam: p.
   function placeholderThumb() { return "data:image/svg+xml;utf8," + encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" width="44" height="44"><rect width="44" height="44" fill="#F0EBDD"/><text x="22" y="27" font-size="20" text-anchor="middle">🌱</text></svg>'); }
 </script>
 <script>
-  // fix-13: installeerbare app
+  // fix-14: installeerbare app
   if ("serviceWorker" in navigator) {
     window.addEventListener("load", () => navigator.serviceWorker.register("./sw.js").catch(() => {}));
   }
