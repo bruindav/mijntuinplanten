@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<!-- fix-23 -->
+<!-- fix-24 -->
 <title>Mijn Tuin — Plantenregister</title>
 <meta name="theme-color" content="#2C4A3B">
 <link rel="manifest" href="manifest.webmanifest">
@@ -259,6 +259,9 @@
   .cal-advice{display:none;margin:-2px 0 8px;padding:10px 12px;background:white;border:1px solid var(--line);border-left-width:4px;border-radius:8px;font-size:0.85rem;line-height:1.45;}
   .cal-advice.open{display:block;}
   .cal-advice.prune{border-left-color:#4B79A1;} .cal-advice.fert{border-left-color:#C99A2E;} .cal-advice.bloom{border-left-color:#D66B9E;}
+  .cal-advice .adv-row{display:flex;gap:12px;align-items:flex-start;}
+  .cal-advice .adv-row .plant-thumb{width:72px;height:72px;border-radius:8px;}
+  .cal-advice .adv-text{flex:1;min-width:0;}
   .cal-advice .lbl{font-size:0.7rem;text-transform:uppercase;letter-spacing:0.06em;color:#8a8a78;font-weight:700;margin-bottom:3px;}
   .cal-advice .empty{color:#8a8a78;font-style:italic;}
   .cal-advice button{margin-top:8px;padding:5px 11px;font-size:0.76rem;}
@@ -796,12 +799,13 @@
   </div>
 </div>
 
-<footer class="app-version mono">versie fix-23</footer>
+<footer class="app-version mono">versie fix-24</footer>
 
 <div class="toast" id="toast"></div>
 
 <!-- Firebase SDK -->
 <script type="module">
+  // fix-24: foto van de plant in het uitgeklapte kaartje in de kalender
   // fix-23: blok Verzorging ingedeeld in Snoeien, Bemesten, Bloei en Groeiplek; maanden als knopjes
   // fix-22: gegevens van het plantkaartje automatisch vastzetten; vinkje ook voor de bloeiperiode
   // fix-21: bij een foto eerst het plantkaartje lezen en overnemen, daarna pas aanvullen
@@ -2066,7 +2070,7 @@ ${JSON.stringify(list.map(p => ({ id: p.id, naam: p.name || "", latijnseNaam: p.
       ? `Bloeit van ${escapeHtml(monthRange(p))}.`
       : (text && text.trim() ? escapeHtml(text) : `<span class="empty">Nog geen ${kind === "prune" ? "snoeiadvies" : "bemestingsadvies"} ingevuld.</span>`);
     const note = kind === "fert" && fertMonthsOf(p).derived ? '<div class="note">Maand afgeleid uit het bemestingsadvies; vul Bemestmaanden in om dit vast te leggen.</div>' : "";
-    adv.innerHTML = `<div class="lbl">${label}</div><div>${body}</div>${note}<button class="btn-outline" type="button">Plant openen</button>`;
+    adv.innerHTML = `<div class="adv-row"><img class="plant-thumb" src="${p.photo || placeholderThumb()}" alt=""><div class="adv-text"><div class="lbl">${label}</div><div>${body}</div>${note}<button class="btn-outline" type="button">Plant openen</button></div></div>`;
     adv.querySelector("button").onclick = () => openPlantModal(p);
     btn.onclick = () => {
       const open = !adv.classList.contains("open");
@@ -2413,7 +2417,7 @@ Verzin niets: bij twijfel "gevonden": false.`;
   function placeholderThumb() { return "data:image/svg+xml;utf8," + encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" width="44" height="44"><rect width="44" height="44" fill="#F0EBDD"/><text x="22" y="27" font-size="20" text-anchor="middle">🌱</text></svg>'); }
 </script>
 <script>
-  // fix-23: installeerbare app
+  // fix-24: installeerbare app
   if ("serviceWorker" in navigator) {
     window.addEventListener("load", () => navigator.serviceWorker.register("./sw.js").catch(() => {}));
   }
