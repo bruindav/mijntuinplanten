@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<!-- fix-25 -->
+<!-- fix-26 -->
 <title>Mijn Tuin — Plantenregister</title>
 <meta name="theme-color" content="#2C4A3B">
 <link rel="manifest" href="manifest.webmanifest">
@@ -313,6 +313,10 @@
   #blockIdentify{background:#F3F6F1;border-color:var(--leaf);border-style:dashed;}
   #blockIdentify .block-body{border-top-style:dashed;border-top-color:var(--leaf);}
   #blockIdentify .identify-box{border:none;background:transparent;padding:0;margin-bottom:10px;}
+  .soil-chips{display:flex;flex-wrap:wrap;gap:5px;margin-top:7px;}
+  .soil-chip{padding:5px 10px;border-radius:999px;border:1px solid var(--line);background:white;color:var(--soil);font-size:0.76rem;font-weight:600;}
+  .soil-chip:active{transform:none;}
+  .soil-chip.on{background:var(--soil);border-color:var(--soil);color:var(--paper);}
   .cal-hint{background:#FBF4E2;border:1px solid #E8D4A0;border-radius:10px;padding:10px 12px;font-size:0.82rem;line-height:1.45;margin-bottom:14px;display:none;}
   .cal-hint button{margin-top:8px;padding:6px 12px;font-size:0.78rem;}
   .cal-advice .note{font-size:0.74rem;color:#8a8a78;margin-top:4px;}
@@ -586,12 +590,10 @@
       <div class="field"><label>Naam</label><input type="text" id="plantName" placeholder="bv. Vlinderstruik"></div>
       <div class="field"><label>Latijnse naam</label><input type="text" id="plantLatin" placeholder="bv. Buddleja davidii"></div>
     </div>
-    <div class="field-row">
-      <div class="field"><label>Variëteit of kleur</label><input type="text" id="plantVariety" placeholder="bv. Moneymaker of rood"></div>
-      <div class="field">
-        <label>Soort</label>
-        <select id="plantCategory"></select>
-      </div>
+    <div class="field"><label>Variëteit of kleur</label><input type="text" id="plantVariety" placeholder="bv. Moneymaker of rood"></div>
+    <div class="field">
+      <label>Soort</label>
+      <select id="plantCategory"></select>
     </div>
     <div class="field"><label>Geplant op</label><input type="date" id="plantDate"></div>
     <div class="field">
@@ -691,19 +693,17 @@
         </div>
         <div class="care-group soil">
           <div class="cg-head"><span class="ic" data-ic="soil"></span>Groeiplek</div>
-          <div class="field-row">
-            <div class="field">
-              <label>Gewenste grondsoort</label>
-              <input type="text" id="plantSoil" list="soilOptions" placeholder="bv. humusrijk, doorlatend">
-              <datalist id="soilOptions"><option>Klei</option><option>Zand</option><option>Veen</option><option>Leem</option><option>Potgrond</option></datalist>
-            </div>
-            <div class="field">
-              <label>Standplaats</label>
-              <select id="plantSun">
-                <option value="">— onbekend —</option>
-                <option>Volle zon</option><option>Halfschaduw</option><option>Schaduw</option>
-              </select>
-            </div>
+          <div class="field">
+            <label>Gewenste grondsoort</label>
+            <input type="text" id="plantSoil" placeholder="bv. humusrijk, doorlatend">
+            <div class="soil-chips" id="soilChips" aria-label="Kies grondsoort"></div>
+          </div>
+          <div class="field">
+            <label>Standplaats</label>
+            <select id="plantSun">
+              <option value="">— onbekend —</option>
+              <option>Volle zon</option><option>Halfschaduw</option><option>Schaduw</option>
+            </select>
           </div>
         </div>
       </div>
@@ -824,12 +824,13 @@
   </div>
 </div>
 
-<footer class="app-version mono">versie fix-25</footer>
+<footer class="app-version mono">versie fix-26</footer>
 
 <div class="toast" id="toast"></div>
 
 <!-- Firebase SDK -->
 <script type="module">
+  // fix-26: grondsoort kiezen met knopjes; velden in Groeiplek en Plant onder elkaar
   // fix-25: plantvenster met tabbladen Plant, Locatie en Verzorging
   // fix-24: foto van de plant in het uitgeklapte kaartje in de kalender
   // fix-23: blok Verzorging ingedeeld in Snoeien, Bemesten, Bloei en Groeiplek; maanden als knopjes
@@ -1286,8 +1287,36 @@
       });
     });
   }
+  // Soil: free text, with buttons for the common terms. A button adds or removes its word.
+  const SOIL_TERMS = ["Klei", "Zand", "Veen", "Leem", "Potgrond", "humusrijk", "doorlatend", "vochtig", "droog", "kalkrijk", "zuur"];
+  const soilParts = () => $("plantSoil").value.split(",").map(x => x.trim()).filter(Boolean);
+  function renderSoilChips() {
+    const box = $("soilChips");
+    if (!box.childElementCount) {
+      SOIL_TERMS.forEach(term => {
+        const b = document.createElement("button");
+        b.type = "button"; b.className = "soil-chip"; b.textContent = term;
+        b.onclick = () => {
+          const parts = soilParts();
+          const i = parts.findIndex(x => x.toLowerCase() === term.toLowerCase());
+          if (i >= 0) parts.splice(i, 1); else parts.push(term);
+          $("plantSoil").value = parts.join(", ");
+          renderSoilChips();
+        };
+        box.appendChild(b);
+      });
+    }
+    const words = $("plantSoil").value.toLowerCase();
+    Array.from(box.children).forEach(b => {
+      const on = new RegExp(`(^|[^a-z\u00e0-\u00ff])${b.textContent.toLowerCase()}($|[^a-z\u00e0-\u00ff])`).test(words);
+      b.classList.toggle("on", on);
+      b.setAttribute("aria-pressed", on ? "true" : "false");
+    });
+  }
+  $("plantSoil").addEventListener("input", renderSoilChips);
   function updateCareBlockSummary() {
     renderMonthChips();
+    renderSoilChips();
     const bs = $("bloomStart").value, be = $("bloomEnd").value;
     const pm = Array.from($("pruneMonths").selectedOptions).map(o => MONTHS[Number(o.value)]);
     const parts = [];
@@ -2462,7 +2491,7 @@ Verzin niets: bij twijfel "gevonden": false.`;
   function placeholderThumb() { return "data:image/svg+xml;utf8," + encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" width="44" height="44"><rect width="44" height="44" fill="#F0EBDD"/><text x="22" y="27" font-size="20" text-anchor="middle">🌱</text></svg>'); }
 </script>
 <script>
-  // fix-25: installeerbare app
+  // fix-26: installeerbare app
   if ("serviceWorker" in navigator) {
     window.addEventListener("load", () => navigator.serviceWorker.register("./sw.js").catch(() => {}));
   }
