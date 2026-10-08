@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<!-- fix-20 -->
+<!-- fix-21 -->
 <title>Mijn Tuin — Plantenregister</title>
 <meta name="theme-color" content="#2C4A3B">
 <link rel="manifest" href="manifest.webmanifest">
@@ -271,6 +271,8 @@
   #lookupPreview{width:56px;height:56px;object-fit:cover;border-radius:8px;display:none;}
   #lookupStatus{font-size:0.8rem;color:#4a4a40;margin:2px 0 10px;line-height:1.45;}
   #lookupPhotos{margin:-4px 0 10px;}
+  .label-read{font-size:0.78rem;background:white;border:1px solid var(--line);border-radius:8px;padding:8px 10px;margin:0 0 10px;color:#4a4a40;line-height:1.45;display:none;}
+  .label-read b{color:var(--moss);}
   .sub-details{font-size:0.8rem;margin-bottom:12px;}
   .sub-details summary{cursor:pointer;color:var(--moss);font-weight:600;margin-bottom:6px;}
   .sub-details p{margin:0 0 8px;color:#4a4a40;line-height:1.45;}
@@ -565,6 +567,7 @@
         </div>
         <div class="care-fetch"><button class="btn-outline" id="lookupBtn" type="button">Opzoeken met Gemini</button></div>
         <div id="lookupStatus"></div>
+        <div class="label-read" id="lookupLabel"></div>
         <div class="sug-photos" id="lookupPhotos" style="display:none;"></div>
         <details class="sub-details">
           <summary>Lukt het niet? Via Claude</summary>
@@ -774,12 +777,13 @@
   </div>
 </div>
 
-<footer class="app-version mono">versie fix-20</footer>
+<footer class="app-version mono">versie fix-21</footer>
 
 <div class="toast" id="toast"></div>
 
 <!-- Firebase SDK -->
 <script type="module">
+  // fix-21: bij een foto eerst het plantkaartje lezen en overnemen, daarna pas aanvullen
   // fix-20: plant opzoeken met AI op naam of foto van het plantkaartje (Gemini of via Claude)
   // fix-19: snoei- en bemestingsadvies per plant vastzetten tegen automatisch ophalen
   // fix-18: kalender leidt bemestmaanden af uit het bemestingsadvies als ze ontbreken
@@ -1395,6 +1399,7 @@
     lookupPhoto = null;
     $("lookupName").value = ""; $("lookupPhotoInput").value = ""; $("lookupPreview").style.display = "none";
     $("lookupStatus").textContent = ""; $("lookupClaudeText").value = "";
+    $("lookupLabel").style.display = "none"; $("lookupLabel").innerHTML = "";
     $("lookupPhotos").style.display = "none"; $("lookupPhotos").innerHTML = "";
     updateCareBlockSummary();
     $("deletePlantBtn").style.display = plant ? "inline-block" : "none";
@@ -2141,8 +2146,12 @@ ${JSON.stringify(list.map(p => ({ id: p.id, naam: p.name || "", latijnseNaam: p.
     const what = viaClaude
       ? (name ? `de naam "${name}" en/of ` : "") + "de foto van het plantkaartje als ik die in deze chat meestuur"
       : [name ? `de naam "${name}"` : "", hasPhoto ? "de bijgevoegde foto van het plantkaartje" : ""].filter(Boolean).join(" en ");
-    return `Je bent een Nederlandse tuinexpert. Zoek de plant op aan de hand van ${what}. Lees bij een foto de naam, het ras en de kleur van het kaartje. Geef de gegevens voor een tuin in Nederland.
-${viaClaude ? "Antwoord met uitsluitend één JSON-object in een codeblok, zonder verdere uitleg," : "Antwoord uitsluitend met één JSON-object,"} met precies deze velden:
+    const label = viaClaude || hasPhoto;
+    return `Je bent een Nederlandse tuinexpert. Zoek de plant op aan de hand van ${what}. Geef de gegevens voor een tuin in Nederland.
+${label ? `Werk in twee stappen.
+1. Lees eerst alles wat op het plantkaartje staat, ook de pictogrammen (zon, halfschaduw of schaduw, water, bloeimaanden, hoogte, snoeitijd, winterhardheid). Neem die informatie over zoals hij op het kaartje staat; het kaartje gaat voor.${name ? " De ingetypte naam is alleen een hulp." : ""}
+2. Vul daarna alleen aan wat niet op het kaartje staat, met je eigen kennis van precies deze plant en dit ras. Spreek het kaartje niet tegen.
+` : ""}${viaClaude ? "Antwoord met uitsluitend één JSON-object in een codeblok, zonder verdere uitleg," : "Antwoord uitsluitend met één JSON-object,"} met precies deze velden:
 - "gevonden": true als je de plant met redelijke zekerheid herkent, anders false
 - "naam": de gangbare Nederlandse naam
 - "latijnseNaam": de botanische naam (geslacht en soort)
@@ -2150,7 +2159,9 @@ ${viaClaude ? "Antwoord met uitsluitend één JSON-object in een codeblok, zonde
 - "soort": precies één van: ${CATEGORIES.join(", ")}
 - "standplaats": "Volle zon", "Halfschaduw", "Schaduw" of ""
 - "toelichting": één korte zin over wat je hebt gevonden en hoe zeker je bent
-${CARE_FIELDS}
+${CARE_FIELDS}${label ? `
+- "kaartjeTekst": de tekst die je op het kaartje leest, regels gescheiden door " / ", met pictogrammen in woorden (bijvoorbeeld "zon"); "" als er geen kaartje is
+- "vanKaartje": array met de namen van de velden hierboven die je van het kaartje hebt overgenomen, bijvoorbeeld ["naam", "varieteitOfKleur", "bloeiVan", "bloeiTot", "standplaats"]` : ""}
 Verzin niets: bij twijfel "gevonden": false.`;
   }
   function parseLookup(text) {
@@ -2182,6 +2193,7 @@ Verzin niets: bij twijfel "gevonden": false.`;
     const st = $("lookupStatus");
     const strip = $("lookupPhotos");
     strip.style.display = "none"; strip.innerHTML = "";
+    $("lookupLabel").style.display = "none"; $("lookupLabel").innerHTML = "";
     if (o.gevonden === false) {
       st.textContent = "Niet gevonden" + (o.toelichting ? ": " + o.toelichting : ".") + " Probeer een andere schrijfwijze of een scherpere foto.";
       return;
@@ -2196,6 +2208,19 @@ Verzin niets: bij twijfel "gevonden": false.`;
     let kept = [];
     const care = parseCareRows(JSON.stringify([{ ...o, id: "x", herkend: true }]), [{ id: "x" }], true).care.x;
     if (care) { kept = fillCareForm(care); filled.push("verzorging"); }
+    // Which parts came from the label, which were added by the AI.
+    const FIELD_LABEL = { naam: "naam", latijnseNaam: "Latijnse naam", varieteitOfKleur: "variëteit of kleur", soort: "soort", standplaats: "standplaats",
+      bloeiVan: "bloei", bloeiTot: "bloei", snoeimaanden: "snoei", snoeiadvies: "snoei", bemestmaanden: "bemesting", bemesting: "bemesting", grondsoort: "grondsoort" };
+    const fromLabel = [...new Set((Array.isArray(o.vanKaartje) ? o.vanKaartje : []).map(f => FIELD_LABEL[f]).filter(Boolean))];
+    const labelText = typeof o.kaartjeTekst === "string" ? o.kaartjeTekst.trim() : "";
+    const box = $("lookupLabel");
+    if (labelText || fromLabel.length) {
+      const added = [...new Set(Object.keys(FIELD_LABEL).filter(f => o[f] != null && o[f] !== "" && !(Array.isArray(o[f]) && !o[f].length)).map(f => FIELD_LABEL[f]))].filter(x => !fromLabel.includes(x));
+      box.innerHTML = (labelText ? `<div><b>Op het kaartje:</b> \u201c${escapeHtml(labelText)}\u201d</div>` : "")
+        + `<div><b>Van het kaartje:</b> ${fromLabel.length ? escapeHtml(fromLabel.join(", ")) : "niets bruikbaars"}</div>`
+        + (added.length ? `<div><b>Aangevuld door AI:</b> ${escapeHtml(added.join(", "))}</div>` : "");
+      box.style.display = "block";
+    } else { box.style.display = "none"; box.innerHTML = ""; }
     st.textContent = (filled.length ? "Ingevuld: " + filled.join(", ") + ". " : "")
       + (o.toelichting ? o.toelichting.trim() + " " : "")
       + (kept.length ? `Vastgezet ${kept.join(" en ")} is niet aangepast. ` : "")
@@ -2317,7 +2342,7 @@ Verzin niets: bij twijfel "gevonden": false.`;
   function placeholderThumb() { return "data:image/svg+xml;utf8," + encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" width="44" height="44"><rect width="44" height="44" fill="#F0EBDD"/><text x="22" y="27" font-size="20" text-anchor="middle">🌱</text></svg>'); }
 </script>
 <script>
-  // fix-20: installeerbare app
+  // fix-21: installeerbare app
   if ("serviceWorker" in navigator) {
     window.addEventListener("load", () => navigator.serviceWorker.register("./sw.js").catch(() => {}));
   }
