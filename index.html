@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<!-- fix-16 -->
+<!-- fix-17 -->
 <title>Mijn Tuin — Plantenregister</title>
 <meta name="theme-color" content="#2C4A3B">
 <link rel="manifest" href="manifest.webmanifest">
@@ -84,17 +84,13 @@
   main.active{display:block;}
 
   .layout{
-    display:grid;
-    grid-template-columns:1fr;
-    gap:0;
+    display:block;max-width:980px;margin:0 auto;
   }
-  @media(min-width:900px){
-    .layout{grid-template-columns:1.1fr 1fr;}
-  }
+
 
   /* Map panel */
   .map-panel{
-    padding:20px;border-right:1px solid var(--line);min-width:0;
+    padding:20px;min-width:0;
   }
   .map-toolbar{
     display:flex;justify-content:space-between;align-items:baseline;
@@ -190,7 +186,7 @@
   }
   .btn-add svg{width:20px;height:20px;display:block;}
   @media(max-width:480px){
-    header{padding:12px 12px;}
+    header{padding:12px 12px 0;}
     header .actions{gap:6px;}
     header .btn-ghost{padding:8px 9px;font-size:0.78rem;}
   }
@@ -213,6 +209,60 @@
   #careClaudeBlock details{font-size:0.8rem;margin-bottom:10px;}
   #careClaudeBlock details summary{cursor:pointer;color:var(--moss);font-weight:600;margin-bottom:6px;}
   #careClaudeStatus{font-size:0.82rem;color:#4a4a40;min-height:1.2em;padding-bottom:12px;}
+  /* Tabbladen (fix-17) */
+  header{flex-wrap:wrap;padding-bottom:0;}
+  header .brand, header .actions{margin-bottom:12px;}
+  .tabs{flex-basis:100%;display:none;gap:2px;margin:0 -6px;}
+  .tab-btn{
+    flex:1;display:flex;align-items:center;justify-content:center;gap:7px;
+    background:transparent;color:rgba(250,247,240,0.68);border-radius:0;
+    padding:9px 6px 10px;border-bottom:3px solid transparent;font-size:0.88rem;
+  }
+  .tab-btn:hover{color:var(--paper);}
+  .tab-btn:active{transform:none;}
+  .tab-btn.active{color:var(--paper);border-bottom-color:var(--ochre);}
+  .tab-btn svg{width:18px;height:18px;flex-shrink:0;}
+  .tab-panel{display:none;}
+  .tab-panel.active{display:block;}
+  /* Kalender (fix-17) */
+  .cal-panel{padding:20px;}
+  .cal-panel > h2{margin:0 0 4px;font-size:1.05rem;}
+  .cal-panel > .sub{font-size:0.78rem;color:#8a8a78;margin:0 0 14px;}
+  details.cal-month{background:white;border:1px solid var(--line);border-radius:12px;margin-bottom:10px;}
+  details.cal-month > summary{list-style:none;display:flex;align-items:center;gap:10px;padding:12px 14px;cursor:pointer;user-select:none;}
+  details.cal-month > summary::-webkit-details-marker{display:none;}
+  details.cal-month > summary::before{content:"\25B8";color:var(--leaf);transition:transform .12s ease;}
+  details.cal-month[open] > summary::before{transform:rotate(90deg);}
+  details.cal-month[open] > summary{border-bottom:1px solid var(--line);}
+  details.cal-month.now{border-color:var(--ochre);box-shadow:0 0 0 1px var(--ochre);}
+  .cal-name{font-family:'Fraunces',serif;font-weight:600;font-size:1.05rem;}
+  .cal-year{font-size:0.75rem;color:#8a8a78;}
+  .cal-now{background:var(--ochre);color:var(--ink);font-size:0.62rem;font-weight:700;border-radius:999px;padding:2px 8px;text-transform:uppercase;letter-spacing:0.05em;}
+  .cal-counts{margin-left:auto;display:flex;gap:10px;align-items:center;font-size:0.8rem;font-weight:600;color:#4a4a40;}
+  .cal-counts span{display:inline-flex;gap:3px;align-items:center;}
+  .cal-counts .st-ico{width:17px;height:17px;}
+  .cal-body{padding:4px 14px 10px;}
+  .cal-sec h4{display:flex;align-items:center;gap:7px;margin:12px 0 6px;font-size:0.72rem;text-transform:uppercase;letter-spacing:0.06em;font-family:'Public Sans',sans-serif;}
+  .cal-sec h4 .st-ico{width:18px;height:18px;}
+  .cal-sec h4 .n{color:#8a8a78;font-weight:600;}
+  .cal-sec.prune h4{color:#4B79A1;} .cal-sec.fert h4{color:#8A6418;} .cal-sec.bloom h4{color:#B4467F;}
+  .cal-item{
+    width:100%;display:flex;align-items:center;gap:8px;text-align:left;
+    background:var(--paper);border:1px solid var(--line);border-radius:8px;padding:8px 10px;margin-bottom:6px;
+    color:var(--ink);font-weight:500;font-size:0.88rem;
+  }
+  .cal-item:active{transform:none;}
+  .cal-item .nm{flex:1;min-width:0;}
+  .cal-item .chev{color:var(--leaf);transition:transform .12s ease;}
+  .cal-item[aria-expanded="true"] .chev{transform:rotate(90deg);}
+  .cal-item .badge{flex-shrink:0;}
+  .cal-advice{display:none;margin:-2px 0 8px;padding:10px 12px;background:white;border:1px solid var(--line);border-left-width:4px;border-radius:8px;font-size:0.85rem;line-height:1.45;}
+  .cal-advice.open{display:block;}
+  .cal-advice.prune{border-left-color:#4B79A1;} .cal-advice.fert{border-left-color:#C99A2E;} .cal-advice.bloom{border-left-color:#D66B9E;}
+  .cal-advice .lbl{font-size:0.7rem;text-transform:uppercase;letter-spacing:0.06em;color:#8a8a78;font-weight:700;margin-bottom:3px;}
+  .cal-advice .empty{color:#8a8a78;font-style:italic;}
+  .cal-advice button{margin-top:8px;padding:5px 11px;font-size:0.76rem;}
+  .cal-empty{color:#8a8a78;font-size:0.84rem;padding:10px 0 4px;}
   .map-note{font-size:0.72rem;color:#8a8a78;margin:6px 0 0;}
 
   /* Month wheel */
@@ -387,6 +437,11 @@
     <button class="btn-ghost" id="settingsBtn" style="display:none;">Instellingen</button>
     <button class="btn-ghost" id="signOutBtn" style="display:none;">Uitloggen</button>
   </div>
+  <nav class="tabs" id="tabs" role="tablist" aria-label="Onderdelen">
+    <button class="tab-btn" data-tab="tuin" role="tab"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 12h18M12 3v18"/></svg>Tuin</button>
+    <button class="tab-btn" data-tab="planten" role="tab"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M12 21V11M12 11C12 6.5 9.2 4 4.5 3.5c0 4.6 2.6 7.5 7.5 7.5zM12 11c0-5 2.8-7.6 7.5-8 0 5-2.6 8-7.5 8z"/></svg>Planten</button>
+    <button class="tab-btn" data-tab="kalender" role="tab"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M3 10h18M8 3v4M16 3v4"/></svg>Kalender</button>
+  </nav>
 </header>
 
 <div id="signedOutView">
@@ -397,7 +452,7 @@
 
 <main id="mainView">
   <div class="layout">
-    <section class="map-panel">
+    <section class="map-panel tab-panel" data-tab="tuin">
       <div class="map-toolbar">
         <h2 class="display">Plantvakken</h2>
         <span class="sub">Tik een vak aan om de planten te zien of er een toe te voegen. Sleep een plant naar een ander vak om hem te verplaatsen.</span>
@@ -432,7 +487,7 @@
       </div>
     </section>
 
-    <section class="list-panel">
+    <section class="list-panel tab-panel" data-tab="planten">
       <h2 class="display">Planten <span id="plantCount" class="mono" style="font-size:0.85rem;color:#8a8a78;"></span></h2>
       <input type="text" id="searchBox" placeholder="Zoek op naam, kleur, soort of vak...">
       <div class="sort-bar">
@@ -446,6 +501,12 @@
       <button class="btn-outline" id="careAllBtn" style="width:100%;margin-bottom:14px;">Verzorging ophalen voor alle planten</button>
       <div id="plantList"></div>
       <div id="emptyList" style="display:none;">Nog geen planten geregistreerd.</div>
+    </section>
+
+    <section class="cal-panel tab-panel" data-tab="kalender">
+      <h2 class="display">Kalender</h2>
+      <p class="sub">Per maand wat je moet snoeien, wat bemest moet worden en wat er bloeit. Tik op een plant voor het advies.</p>
+      <div id="calendar"></div>
     </section>
   </div>
 </main>
@@ -547,6 +608,10 @@
           <label>Snoeimaanden</label>
           <select id="pruneMonths" multiple size="4"></select>
         </div>
+        <div class="field">
+          <label>Bemestmaanden</label>
+          <select id="fertMonths" multiple size="4"></select>
+        </div>
       </div>
     </details>
 
@@ -594,7 +659,7 @@
   <div class="modal">
     <div class="close-row"><button id="closeCareModal">&times;</button></div>
     <h2 class="display">Verzorging ophalen</h2>
-    <p class="modal-sub">De bloeiperiode, snoeimaanden, het snoeiadvies, de bemesting en de gewenste grondsoort worden opgehaald met AI (Google Gemini), voor het Nederlandse klimaat. Controleer het resultaat: het is een advies, geen naslagwerk.</p>
+    <p class="modal-sub">De bloeiperiode, snoeimaanden, het snoeiadvies, de bemesting (met bemestmaanden) en de gewenste grondsoort worden opgehaald met AI (Google Gemini), voor het Nederlandse klimaat. Controleer het resultaat: het is een advies, geen naslagwerk.</p>
     <div id="careSummary" style="font-size:0.88rem;"></div>
     <label class="check"><input type="checkbox" id="careOverwrite"><span>Ook gegevens vervangen die al zijn ingevuld</span></label>
     <div id="careProgress" style="font-size:0.82rem;color:#6b6b5e;min-height:1.2em;"><span id="careSpinner" class="spinner" style="display:none;"></span><span id="careProgressText"></span></div>
@@ -665,12 +730,13 @@
   </div>
 </div>
 
-<footer class="app-version mono">versie fix-16</footer>
+<footer class="app-version mono">versie fix-17</footer>
 
 <div class="toast" id="toast"></div>
 
 <!-- Firebase SDK -->
 <script type="module">
+  // fix-17: tabbladen Tuin, Planten en Kalender; bemestmaanden per plant
   // fix-16: lijst sorteren op bloei of snoei, met bloeiers of te snoeien planten bovenaan
   // fix-15: zichtbaar logboek, teller en tijdslimiet bij verzorging ophalen
   // fix-14: verzorging ophalen via een opdracht voor Claude en een bestand om te importeren
@@ -804,6 +870,8 @@
       $("settingsBtn").style.display = "inline-block";
       $("addPlantBtn").style.display = "inline-flex";
       $("signOutBtn").style.display = "inline-block";
+      $("tabs").style.display = "flex";
+      showTab(currentTab);
       listenPlants();
       listenGarden();
     } else {
@@ -812,6 +880,7 @@
       $("settingsBtn").style.display = "none";
       $("addPlantBtn").style.display = "none";
       $("signOutBtn").style.display = "none";
+      $("tabs").style.display = "none";
     }
   });
 
@@ -1057,6 +1126,7 @@
   fillMonthSelect($("bloomStart"), true);
   fillMonthSelect($("bloomEnd"), true);
   fillMonthSelect($("pruneMonths"));
+  fillMonthSelect($("fertMonths"));
 
   // Soort
   const catSel = $("plantCategory");
@@ -1101,6 +1171,8 @@
       parts.push("bloeit " + (a === b ? a : a + "\u2013" + b));
     }
     if (pm.length) parts.push("snoeien " + pm.join(", "));
+    const fm = Array.from($("fertMonths").selectedOptions).map(o => MONTHS[Number(o.value)]);
+    if (fm.length) parts.push("bemesten " + fm.join(", "));
     $("careBlockSummary").textContent = parts.join(" \u00b7 ") || "nog niet ingevuld";
   }
   $("blockCare").addEventListener("change", updateCareBlockSummary);
@@ -1120,6 +1192,7 @@
       plants = snap.docs.map(d => ({ id: d.id, ...d.data() }));
       renderList();
       renderGrid();
+      renderCalendar();
     });
   }
 
@@ -1260,6 +1333,7 @@
     $("bloomStart").value = plant?.bloomStart ?? "";
     $("bloomEnd").value = plant?.bloomEnd ?? "";
     Array.from($("pruneMonths").options).forEach(o => o.selected = (plant?.pruneMonths || []).includes(Number(o.value)));
+    Array.from($("fertMonths").options).forEach(o => o.selected = (plant?.fertilizeMonths || []).includes(Number(o.value)));
     const preview = $("plantPhotoPreview");
     if (plant?.photo) { preview.src = plant.photo; preview.style.display = "block"; } else { preview.removeAttribute("src"); preview.style.display = "none"; }
     $("plantPhotoInput").value = "";
@@ -1311,6 +1385,7 @@
       pruningAdvice: $("plantPruning").value.trim(),
       bloomStart, bloomEnd,
       pruneMonths: pm,
+      fertilizeMonths: Array.from($("fertMonths").selectedOptions).map(o => Number(o.value)),
     };
     const photoPreview = $("plantPhotoPreview");
     if (photoPreview.style.display !== "none" && photoPreview.getAttribute("src")) data.photo = photoPreview.src;
@@ -1575,6 +1650,7 @@ ${viaClaude
 ${viaClaude ? '- "naam": de naam van de plant, ongewijzigd\n' : ""}- "herkend": true als je de plant kent, anders false
 - "bloeiVan" en "bloeiTot": maandnummer 1-12 van begin en einde van de bloei, of null als de plant niet (zichtbaar) bloeit of je het niet weet
 - "snoeimaanden": array met maandnummers 1-12 waarin je snoeit of terugknipt; leeg als snoeien niet nodig is
+- "bemestmaanden": array met maandnummers 1-12 waarin je bemest; leeg als bemesten niet nodig is
 - "snoeiadvies": praktisch snoeiadvies in het Nederlands, hooguit twee korte zinnen; schrijf "Snoeien is niet nodig." als dat zo is
 - "bemesting": praktisch bemestingsadvies in het Nederlands (wanneer en waarmee), hooguit twee korte zinnen; schrijf "Bemesten is niet nodig." als dat zo is
 - "grondsoort": de grond waarin de plant het liefst staat, in hooguit zes woorden, bijvoorbeeld "humusrijk, vochtig, licht zuur"
@@ -1614,6 +1690,7 @@ ${JSON.stringify(list.map(p => ({ id: p.id, naam: p.name || "", latijnseNaam: p.
         pruneMonths: [...new Set((Array.isArray(r.snoeimaanden) ? r.snoeimaanden : []).map(monthIdx).filter(m => m !== null))].sort((x, y) => x - y),
         pruningAdvice: typeof r.snoeiadvies === "string" ? r.snoeiadvies.trim() : "",
         fertilizing: typeof r.bemesting === "string" ? r.bemesting.trim() : "",
+        fertilizeMonths: [...new Set((Array.isArray(r.bemestmaanden) ? r.bemestmaanden : []).map(monthIdx).filter(m => m !== null))].sort((x, y) => x - y),
         soil: typeof r.grondsoort === "string" ? r.grondsoort.trim() : "",
       };
     });
@@ -1685,6 +1762,7 @@ ${JSON.stringify(list.map(p => ({ id: p.id, naam: p.name || "", latijnseNaam: p.
       Array.from($("pruneMonths").options).forEach(o => o.selected = care.pruneMonths.includes(Number(o.value)));
       if (care.pruningAdvice) $("plantPruning").value = care.pruningAdvice;
       if (care.fertilizing) $("plantFertilizing").value = care.fertilizing;
+      if (care.fertilizeMonths.length) Array.from($("fertMonths").options).forEach(o => o.selected = care.fertilizeMonths.includes(Number(o.value)));
       if (care.soil) $("plantSoil").value = care.soil;
       updateCareBlockSummary();
       st.textContent = "Ingevuld met AI. Kijk het na en kies Opslaan.";
@@ -1697,7 +1775,8 @@ ${JSON.stringify(list.map(p => ({ id: p.id, naam: p.name || "", latijnseNaam: p.
   const pruneEmpty = (p) => !(p.pruningAdvice || "").trim() && !(p.pruneMonths || []).length;
   const fertEmpty = (p) => !(p.fertilizing || "").trim();
   const soilEmpty = (p) => !(p.soil || "").trim();
-  const careTargets = (overwrite) => plants.filter(p => (p.name || p.latin) && (overwrite || bloomEmpty(p) || pruneEmpty(p) || fertEmpty(p) || soilEmpty(p)));
+  const fertMonthsEmpty = (p) => !(p.fertilizeMonths || []).length && !/niet nodig/i.test(p.fertilizing || "");
+  const careTargets = (overwrite) => plants.filter(p => (p.name || p.latin) && (overwrite || bloomEmpty(p) || pruneEmpty(p) || fertEmpty(p) || fertMonthsEmpty(p) || soilEmpty(p)));
   // What to write for one plant: only empty fields, unless overwrite is on.
   function carePatch(p, c, overwrite) {
     const patch = {};
@@ -1707,6 +1786,7 @@ ${JSON.stringify(list.map(p => ({ id: p.id, naam: p.name || "", latijnseNaam: p.
       if (c.pruningAdvice) patch.pruningAdvice = c.pruningAdvice;
     }
     if ((overwrite || fertEmpty(p)) && c.fertilizing) patch.fertilizing = c.fertilizing;
+    if ((overwrite || fertMonthsEmpty(p)) && c.fertilizeMonths.length) patch.fertilizeMonths = c.fertilizeMonths;
     if ((overwrite || soilEmpty(p)) && c.soil) patch.soil = c.soil;
     return patch;
   }
@@ -1787,6 +1867,101 @@ ${JSON.stringify(list.map(p => ({ id: p.id, naam: p.name || "", latijnseNaam: p.
       careBusy = false; careSummary();
     }
   };
+
+  // ---------- Tabbladen (fix-17) ----------
+  const TABS = ["tuin", "planten", "kalender"];
+  let currentTab = "tuin";
+  try { const t = localStorage.getItem("mijntuin.tab"); if (TABS.includes(t)) currentTab = t; } catch {}
+  function showTab(tab) {
+    currentTab = tab;
+    document.querySelectorAll(".tab-panel").forEach(el => el.classList.toggle("active", el.dataset.tab === tab));
+    document.querySelectorAll(".tab-btn").forEach(b => {
+      b.classList.toggle("active", b.dataset.tab === tab);
+      b.setAttribute("aria-selected", b.dataset.tab === tab ? "true" : "false");
+    });
+    try { localStorage.setItem("mijntuin.tab", tab); } catch {}
+    if (tab === "kalender") renderCalendar();
+    window.scrollTo(0, 0);
+  }
+  document.querySelectorAll(".tab-btn").forEach(b => { b.onclick = () => showTab(b.dataset.tab); });
+
+  // ---------- Kalender (fix-17) ----------
+  // Twelve months, starting with the current one. Per month: what to prune, what to fertilise, what flowers.
+  const MONTHS_FULL = ["januari", "februari", "maart", "april", "mei", "juni", "juli", "augustus", "september", "oktober", "november", "december"];
+  const ICON_FERT = '<svg class="st-ico" viewBox="0 0 24 24" fill="none" stroke="#A87A1E" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" role="img" aria-label="Bemesten in deze maand"><title>Bemesten in deze maand</title><path d="M5 10h10v9a1.5 1.5 0 0 1-1.5 1.5h-7A1.5 1.5 0 0 1 5 19z"/><path d="M15 13.5l4.5-5"/><path d="M18 7l3 3"/><path d="M7.5 10V8.5a2.5 2.5 0 0 1 5 0V10"/></svg>';
+  const byPlantName = (a, b) => (a.name || "").localeCompare(b.name || "", "nl", { sensitivity: "base" }) || (a.variety || "").localeCompare(b.variety || "", "nl");
+  const monthRange = (p) => {
+    const a = MONTHS[Number(p.bloomStart)], b = MONTHS[Number(p.bloomEnd)];
+    return a === b ? a : `${a} t/m ${b}`;
+  };
+  function calItem(p, kind) {
+    const wrap = document.createElement("div");
+    const btn = document.createElement("button");
+    btn.type = "button";
+    btn.className = "cal-item";
+    btn.setAttribute("aria-expanded", "false");
+    btn.dataset.id = p.id;
+    btn.innerHTML = `<span class="chev">\u25B8</span><span class="nm">${escapeHtml(p.name || "Naamloos")}${p.variety ? ` <span class="variety">\u00b7 ${escapeHtml(p.variety)}</span>` : ""}</span>${vakBadge(p)}`;
+    const adv = document.createElement("div");
+    adv.className = "cal-advice " + kind;
+    const text = kind === "prune" ? p.pruningAdvice : kind === "fert" ? p.fertilizing : "";
+    const label = kind === "prune" ? "Snoeiadvies" : kind === "fert" ? "Bemestingsadvies" : "Bloei";
+    const body = kind === "bloom"
+      ? `Bloeit van ${escapeHtml(monthRange(p))}.`
+      : (text && text.trim() ? escapeHtml(text) : `<span class="empty">Nog geen ${kind === "prune" ? "snoeiadvies" : "bemestingsadvies"} ingevuld.</span>`);
+    adv.innerHTML = `<div class="lbl">${label}</div><div>${body}</div><button class="btn-outline" type="button">Plant openen</button>`;
+    adv.querySelector("button").onclick = () => openPlantModal(p);
+    btn.onclick = () => {
+      const open = !adv.classList.contains("open");
+      adv.classList.toggle("open", open);
+      btn.setAttribute("aria-expanded", open ? "true" : "false");
+    };
+    wrap.appendChild(btn);
+    wrap.appendChild(adv);
+    return wrap;
+  }
+  function renderCalendar() {
+    const cal = $("calendar");
+    if (!cal) return;
+    // keep which months and which plants were opened
+    const first = !cal.childElementCount;
+    const openMonths = new Set([...cal.querySelectorAll("details.cal-month[open]")].map(d => d.dataset.m));
+    const openItems = new Set([...cal.querySelectorAll(".cal-item[aria-expanded='true']")].map(b => b.closest(".cal-sec").dataset.kind + ":" + b.closest("details").dataset.m + ":" + b.dataset.id));
+    cal.innerHTML = "";
+    const now = new Date(), cur = now.getMonth();
+    for (let k = 0; k < 12; k++) {
+      const m = (cur + k) % 12;
+      const year = now.getFullYear() + (cur + k >= 12 ? 1 : 0);
+      const lists = {
+        prune: plants.filter(p => Array.isArray(p.pruneMonths) && p.pruneMonths.includes(m)).sort(byPlantName),
+        fert: plants.filter(p => Array.isArray(p.fertilizeMonths) && p.fertilizeMonths.includes(m)).sort(byPlantName),
+        bloom: plants.filter(p => p.bloomStart != null && p.bloomEnd != null && monthInRange(m, p.bloomStart, p.bloomEnd)).sort(byPlantName),
+      };
+      const det = document.createElement("details");
+      det.className = "cal-month" + (k === 0 ? " now" : "");
+      det.dataset.m = String(m);
+      det.open = first ? k < 2 : openMonths.has(String(m));
+      const count = (kind, icon) => lists[kind].length ? `<span title="${lists[kind].length}">${icon}${lists[kind].length}</span>` : "";
+      det.innerHTML = `<summary><span class="cal-name">${MONTHS_FULL[m][0].toUpperCase() + MONTHS_FULL[m].slice(1)}</span><span class="cal-year">${year}</span>${k === 0 ? '<span class="cal-now">deze maand</span>' : ""}<span class="cal-counts">${count("prune", ICON_PRUNE)}${count("fert", ICON_FERT)}${count("bloom", ICON_BLOOM)}</span></summary><div class="cal-body"></div>`;
+      const body = det.querySelector(".cal-body");
+      const SECS = [["prune", "Snoeien", ICON_PRUNE], ["fert", "Bemesten", ICON_FERT], ["bloom", "Bloeit", ICON_BLOOM]];
+      SECS.forEach(([kind, title, icon]) => {
+        if (!lists[kind].length) return;
+        const sec = document.createElement("div");
+        sec.className = "cal-sec " + kind;
+        sec.dataset.kind = kind;
+        sec.innerHTML = `<h4>${icon}${title} <span class="n">${lists[kind].length}</span></h4>`;
+        lists[kind].forEach(p => {
+          const it = calItem(p, kind);
+          if (openItems.has(kind + ":" + m + ":" + p.id)) it.querySelector(".cal-item").click();
+          sec.appendChild(it);
+        });
+        body.appendChild(sec);
+      });
+      if (!body.childElementCount) body.innerHTML = '<div class="cal-empty">Niets te snoeien, te bemesten of in bloei.</div>';
+      cal.appendChild(det);
+    }
+  }
 
   // ---------- Verzorging via Claude: opdracht maken, bestand importeren (fix-14) ----------
   function claudePrompt() {
@@ -1870,6 +2045,7 @@ ${JSON.stringify(list.map(p => ({ id: p.id, naam: p.name || "", latijnseNaam: p.
     if (open("vakModalBackdrop")) { closeVakModal(); return true; }
     if (open("settingsModalBackdrop")) { $("settingsModalBackdrop").classList.remove("active"); return true; }
     if (open("plantModalBackdrop")) { closePlantModal(); return true; }
+    if (currentTab !== "tuin") { showTab("tuin"); return true; } // back from another tab goes to Tuin first
     return false;
   }
   window.addEventListener("popstate", () => {
@@ -1913,7 +2089,7 @@ ${JSON.stringify(list.map(p => ({ id: p.id, naam: p.name || "", latijnseNaam: p.
   function placeholderThumb() { return "data:image/svg+xml;utf8," + encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" width="44" height="44"><rect width="44" height="44" fill="#F0EBDD"/><text x="22" y="27" font-size="20" text-anchor="middle">🌱</text></svg>'); }
 </script>
 <script>
-  // fix-16: installeerbare app
+  // fix-17: installeerbare app
   if ("serviceWorker" in navigator) {
     window.addEventListener("load", () => navigator.serviceWorker.register("./sw.js").catch(() => {}));
   }
