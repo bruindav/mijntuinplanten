@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<!-- fix-21 -->
+<!-- fix-22 -->
 <title>Mijn Tuin — Plantenregister</title>
 <meta name="theme-color" content="#2C4A3B">
 <link rel="manifest" href="manifest.webmanifest">
@@ -651,6 +651,7 @@
             <select id="bloomEnd"></select>
           </div>
         </div>
+        <label class="check lock" style="margin:-6px 0 14px;"><input type="checkbox" id="lockBloom"><span>🔒 Niet overschrijven bij automatisch ophalen (bloeiperiode)</span></label>
         <div class="field">
           <label>Snoeimaanden</label>
           <select id="pruneMonths" multiple size="4"></select>
@@ -708,7 +709,7 @@
     <h2 class="display">Verzorging ophalen</h2>
     <p class="modal-sub">De bloeiperiode, snoeimaanden, het snoeiadvies, de bemesting (met bemestmaanden) en de gewenste grondsoort worden opgehaald met AI (Google Gemini), voor het Nederlandse klimaat. Controleer het resultaat: het is een advies, geen naslagwerk.</p>
     <div id="careSummary" style="font-size:0.88rem;"></div>
-    <label class="check"><input type="checkbox" id="careOverwrite"><span>Ook gegevens vervangen die al zijn ingevuld (behalve vastgezet advies 🔒)</span></label>
+    <label class="check"><input type="checkbox" id="careOverwrite"><span>Ook gegevens vervangen die al zijn ingevuld (behalve wat is vastgezet 🔒)</span></label>
     <div id="careProgress" style="font-size:0.82rem;color:#6b6b5e;min-height:1.2em;"><span id="careSpinner" class="spinner" style="display:none;"></span><span id="careProgressText"></span></div>
     <div id="careLog" aria-live="polite"></div>
     <div class="modal-actions">
@@ -777,12 +778,13 @@
   </div>
 </div>
 
-<footer class="app-version mono">versie fix-21</footer>
+<footer class="app-version mono">versie fix-22</footer>
 
 <div class="toast" id="toast"></div>
 
 <!-- Firebase SDK -->
 <script type="module">
+  // fix-22: gegevens van het plantkaartje automatisch vastzetten; vinkje ook voor de bloeiperiode
   // fix-21: bij een foto eerst het plantkaartje lezen en overnemen, daarna pas aanvullen
   // fix-20: plant opzoeken met AI op naam of foto van het plantkaartje (Gemini of via Claude)
   // fix-19: snoei- en bemestingsadvies per plant vastzetten tegen automatisch ophalen
@@ -1383,6 +1385,7 @@
     $("plantPruning").value = plant?.pruningAdvice || "";
     $("lockPruning").checked = !!plant?.lockPruning;
     $("lockFertilizing").checked = !!plant?.lockFertilizing;
+    $("lockBloom").checked = !!plant?.lockBloom;
     $("bloomStart").value = plant?.bloomStart ?? "";
     $("bloomEnd").value = plant?.bloomEnd ?? "";
     Array.from($("pruneMonths").options).forEach(o => o.selected = (plant?.pruneMonths || []).includes(Number(o.value)));
@@ -1445,6 +1448,7 @@
       pruneMonths: pm,
       lockPruning: $("lockPruning").checked,
       lockFertilizing: $("lockFertilizing").checked,
+      lockBloom: $("lockBloom").checked,
       fertilizeMonths: Array.from($("fertMonths").selectedOptions).map(o => Number(o.value)),
     };
     const photoPreview = $("plantPhotoPreview");
@@ -1825,9 +1829,11 @@ ${JSON.stringify(list.map(p => ({ id: p.id, naam: p.name || "", latijnseNaam: p.
     try {
       const care = (await fetchCare([{ id: "x", name, latin, variety: $("plantVariety").value.trim() }])).x;
       if (!care) { st.textContent = "Deze plant is niet herkend. Vul de gegevens zelf in."; return; }
-      $("bloomStart").value = care.bloomStart ?? "";
-      $("bloomEnd").value = care.bloomEnd ?? "";
-      const keepPrune = $("lockPruning").checked, keepFert = $("lockFertilizing").checked;
+      const keepPrune = $("lockPruning").checked, keepFert = $("lockFertilizing").checked, keepBloom = $("lockBloom").checked;
+      if (!keepBloom) {
+        $("bloomStart").value = care.bloomStart ?? "";
+        $("bloomEnd").value = care.bloomEnd ?? "";
+      }
       if (!keepPrune) {
         Array.from($("pruneMonths").options).forEach(o => o.selected = care.pruneMonths.includes(Number(o.value)));
         if (care.pruningAdvice) $("plantPruning").value = care.pruningAdvice;
@@ -1838,7 +1844,7 @@ ${JSON.stringify(list.map(p => ({ id: p.id, naam: p.name || "", latijnseNaam: p.
       }
       if (care.soil) $("plantSoil").value = care.soil;
       updateCareBlockSummary();
-      const kept = [keepPrune && "snoeiadvies", keepFert && "bemestingsadvies"].filter(Boolean);
+      const kept = [keepBloom && "bloeiperiode", keepPrune && "snoeiadvies", keepFert && "bemestingsadvies"].filter(Boolean);
       st.textContent = "Ingevuld met AI. Kijk het na en kies Opslaan." + (kept.length ? ` Vastgezet ${kept.join(" en ")} is niet aangepast.` : "");
     } catch (err) { st.textContent = "Ophalen mislukt: " + err.message; }
     finally { $("careFetchBtn").disabled = false; careReport = () => {}; }
@@ -1850,12 +1856,12 @@ ${JSON.stringify(list.map(p => ({ id: p.id, naam: p.name || "", latijnseNaam: p.
   const fertEmpty = (p) => !(p.fertilizing || "").trim();
   const soilEmpty = (p) => !(p.soil || "").trim();
   const fertMonthsEmpty = (p) => !(p.fertilizeMonths || []).length && !/niet nodig/i.test(p.fertilizing || "");
-  const careTargets = (overwrite) => plants.filter(p => (p.name || p.latin) && (overwrite || bloomEmpty(p)
+  const careTargets = (overwrite) => plants.filter(p => (p.name || p.latin) && (overwrite || (!p.lockBloom && bloomEmpty(p))
     || (!p.lockPruning && pruneEmpty(p)) || (!p.lockFertilizing && (fertEmpty(p) || fertMonthsEmpty(p))) || soilEmpty(p)));
   // What to write for one plant: only empty fields, unless overwrite is on.
   function carePatch(p, c, overwrite) {
     const patch = {};
-    if ((overwrite || bloomEmpty(p)) && c.bloomStart !== null) { patch.bloomStart = c.bloomStart; patch.bloomEnd = c.bloomEnd; }
+    if (!p.lockBloom && (overwrite || bloomEmpty(p)) && c.bloomStart !== null) { patch.bloomStart = c.bloomStart; patch.bloomEnd = c.bloomEnd; }
     // A locked advice (and its months) is never touched by automatic fetching, not even with "vervangen".
     if (!p.lockPruning && (overwrite || pruneEmpty(p))) {
       if (c.pruneMonths.length) patch.pruneMonths = c.pruneMonths;
@@ -2174,9 +2180,11 @@ Verzin niets: bij twijfel "gevonden": false.`;
   }
   // Put care values in the form; locked advice stays as it is.
   function fillCareForm(care) {
-    const keepPrune = $("lockPruning").checked, keepFert = $("lockFertilizing").checked;
-    $("bloomStart").value = care.bloomStart ?? "";
-    $("bloomEnd").value = care.bloomEnd ?? "";
+    const keepPrune = $("lockPruning").checked, keepFert = $("lockFertilizing").checked, keepBloom = $("lockBloom").checked;
+    if (!keepBloom) {
+      $("bloomStart").value = care.bloomStart ?? "";
+      $("bloomEnd").value = care.bloomEnd ?? "";
+    }
     if (!keepPrune) {
       Array.from($("pruneMonths").options).forEach(o => o.selected = care.pruneMonths.includes(Number(o.value)));
       if (care.pruningAdvice) $("plantPruning").value = care.pruningAdvice;
@@ -2187,7 +2195,7 @@ Verzin niets: bij twijfel "gevonden": false.`;
     }
     if (care.soil) $("plantSoil").value = care.soil;
     updateCareBlockSummary();
-    return [keepPrune && "snoeiadvies", keepFert && "bemestingsadvies"].filter(Boolean);
+    return [keepBloom && "bloeiperiode", keepPrune && "snoeiadvies", keepFert && "bemestingsadvies"].filter(Boolean);
   }
   function applyLookup(o) {
     const st = $("lookupStatus");
@@ -2221,6 +2229,21 @@ Verzin niets: bij twijfel "gevonden": false.`;
         + (added.length ? `<div><b>Aangevuld door AI:</b> ${escapeHtml(added.join(", "))}</div>` : "");
       box.style.display = "block";
     } else { box.style.display = "none"; box.innerHTML = ""; }
+    // What was read from the label is reliable: protect it against automatic fetching later.
+    const src = new Set(Array.isArray(o.vanKaartje) ? o.vanKaartje : []);
+    const locked = [];
+    const lockIf = (id, fields, label) => {
+      if (!fields.some(f => src.has(f))) return;
+      if (!$(id).checked) { $(id).checked = true; locked.push(label); }
+    };
+    lockIf("lockBloom", ["bloeiVan", "bloeiTot"], "bloeiperiode");
+    lockIf("lockPruning", ["snoeimaanden", "snoeiadvies"], "snoeiadvies");
+    lockIf("lockFertilizing", ["bemestmaanden", "bemesting"], "bemestingsadvies");
+    if (locked.length) {
+      const line = document.createElement("div");
+      line.innerHTML = `<b>Vastgezet</b> (komt van het kaartje): ${escapeHtml(locked.join(", "))}`;
+      box.appendChild(line);
+    }
     st.textContent = (filled.length ? "Ingevuld: " + filled.join(", ") + ". " : "")
       + (o.toelichting ? o.toelichting.trim() + " " : "")
       + (kept.length ? `Vastgezet ${kept.join(" en ")} is niet aangepast. ` : "")
@@ -2342,7 +2365,7 @@ Verzin niets: bij twijfel "gevonden": false.`;
   function placeholderThumb() { return "data:image/svg+xml;utf8," + encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" width="44" height="44"><rect width="44" height="44" fill="#F0EBDD"/><text x="22" y="27" font-size="20" text-anchor="middle">🌱</text></svg>'); }
 </script>
 <script>
-  // fix-21: installeerbare app
+  // fix-22: installeerbare app
   if ("serviceWorker" in navigator) {
     window.addEventListener("load", () => navigator.serviceWorker.register("./sw.js").catch(() => {}));
   }
