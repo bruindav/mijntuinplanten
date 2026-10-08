@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<!-- fix-22 -->
+<!-- fix-23 -->
 <title>Mijn Tuin — Plantenregister</title>
 <meta name="theme-color" content="#2C4A3B">
 <link rel="manifest" href="manifest.webmanifest">
@@ -278,6 +278,24 @@
   .sub-details p{margin:0 0 8px;color:#4a4a40;line-height:1.45;}
   .sub-details textarea{width:100%;font-family:'IBM Plex Mono',monospace;font-size:0.7rem;border:1px solid var(--line);border-radius:8px;padding:8px;background:white;margin:8px 0 6px;}
   .compare.single{grid-template-columns:1fr;}
+  /* Verzorging in groepen (fix-23) */
+  .care-group{border:1px solid var(--line);border-radius:10px;padding:10px 12px 4px;margin-bottom:12px;background:var(--paper);border-left-width:4px;}
+  .care-group.prune{border-left-color:#4B79A1;} .care-group.fert{border-left-color:#C99A2E;}
+  .care-group.bloom{border-left-color:#D66B9E;} .care-group.soil{border-left-color:var(--soil);}
+  .cg-head{display:flex;align-items:center;gap:7px;font-size:0.76rem;text-transform:uppercase;letter-spacing:0.06em;font-weight:700;margin-bottom:10px;}
+  .cg-head .st-ico{width:18px;height:18px;}
+  .care-group.prune .cg-head{color:#4B79A1;} .care-group.fert .cg-head{color:#8A6418;}
+  .care-group.bloom .cg-head{color:#B4467F;} .care-group.soil .cg-head{color:var(--soil);}
+  .care-group .field{margin-bottom:10px;}
+  .care-group .check.lock{margin:-2px 0 10px;}
+  .month-chips{display:grid;grid-template-columns:repeat(6,1fr);gap:4px;}
+  .mchip{
+    padding:6px 0;border:1px solid var(--line);background:white;border-radius:6px;
+    font-family:'IBM Plex Mono',monospace;font-size:0.74rem;font-weight:500;color:var(--soil);
+  }
+  .mchip:active{transform:none;}
+  .care-group.prune .mchip.on{background:#4B79A1;border-color:#4B79A1;color:white;}
+  .care-group.fert .mchip.on{background:#C99A2E;border-color:#C99A2E;color:var(--ink);}
   .cal-hint{background:#FBF4E2;border:1px solid #E8D4A0;border-radius:10px;padding:10px 12px;font-size:0.82rem;line-height:1.45;margin-bottom:14px;display:none;}
   .cal-hint button{margin-top:8px;padding:6px 12px;font-size:0.78rem;}
   .cal-advice .note{font-size:0.74rem;color:#8a8a78;margin-top:4px;}
@@ -623,42 +641,42 @@
           <button class="btn-outline" id="careFetchBtn" type="button">Verzorging ophalen</button>
           <span class="st" id="careFetchStatus"></span>
         </div>
-        <div class="field-row">
-          <div class="field">
-            <label>Gewenste grondsoort</label>
-            <input type="text" id="plantSoil" list="soilOptions" placeholder="bv. humusrijk, doorlatend">
-            <datalist id="soilOptions"><option>Klei</option><option>Zand</option><option>Veen</option><option>Leem</option><option>Potgrond</option></datalist>
-          </div>
-          <div class="field">
-            <label>Standplaats</label>
-            <select id="plantSun">
-              <option value="">— onbekend —</option>
-              <option>Volle zon</option><option>Halfschaduw</option><option>Schaduw</option>
-            </select>
-          </div>
+        <div class="care-group prune">
+          <div class="cg-head"><span class="ic" data-ic="prune"></span>Snoeien</div>
+          <div class="field"><label>Snoeimaanden</label><div class="month-chips" data-for="pruneMonths"></div><select id="pruneMonths" multiple hidden></select></div>
+          <div class="field"><label>Snoeiadvies</label><textarea id="plantPruning" placeholder="bv. na de bloei terugsnoeien"></textarea></div>
+          <label class="check lock"><input type="checkbox" id="lockPruning"><span>🔒 Niet overschrijven bij automatisch ophalen</span></label>
         </div>
-        <div class="field"><label>Bemesting</label><textarea id="plantFertilizing" placeholder="bv. voorjaar organische mest"></textarea>
-          <label class="check lock"><input type="checkbox" id="lockFertilizing"><span>🔒 Niet overschrijven bij automatisch ophalen (advies en bemestmaanden)</span></label></div>
-        <div class="field"><label>Snoeiadvies</label><textarea id="plantPruning" placeholder="bv. na de bloei terugsnoeien"></textarea>
-          <label class="check lock"><input type="checkbox" id="lockPruning"><span>🔒 Niet overschrijven bij automatisch ophalen (advies en snoeimaanden)</span></label></div>
-        <div class="field-row">
-          <div class="field">
-            <label>Bloeit vanaf</label>
-            <select id="bloomStart"></select>
-          </div>
-          <div class="field">
-            <label>Bloeit tot</label>
-            <select id="bloomEnd"></select>
-          </div>
+        <div class="care-group fert">
+          <div class="cg-head"><span class="ic" data-ic="fert"></span>Bemesten</div>
+          <div class="field"><label>Bemestmaanden</label><div class="month-chips" data-for="fertMonths"></div><select id="fertMonths" multiple hidden></select></div>
+          <div class="field"><label>Bemestingsadvies</label><textarea id="plantFertilizing" placeholder="bv. voorjaar organische mest"></textarea></div>
+          <label class="check lock"><input type="checkbox" id="lockFertilizing"><span>🔒 Niet overschrijven bij automatisch ophalen</span></label>
         </div>
-        <label class="check lock" style="margin:-6px 0 14px;"><input type="checkbox" id="lockBloom"><span>🔒 Niet overschrijven bij automatisch ophalen (bloeiperiode)</span></label>
-        <div class="field">
-          <label>Snoeimaanden</label>
-          <select id="pruneMonths" multiple size="4"></select>
+        <div class="care-group bloom">
+          <div class="cg-head"><span class="ic" data-ic="bloom"></span>Bloei</div>
+          <div class="field-row">
+            <div class="field"><label>Bloeit vanaf</label><select id="bloomStart"></select></div>
+            <div class="field"><label>Bloeit tot</label><select id="bloomEnd"></select></div>
+          </div>
+          <label class="check lock"><input type="checkbox" id="lockBloom"><span>🔒 Niet overschrijven bij automatisch ophalen</span></label>
         </div>
-        <div class="field">
-          <label>Bemestmaanden</label>
-          <select id="fertMonths" multiple size="4"></select>
+        <div class="care-group soil">
+          <div class="cg-head"><span class="ic" data-ic="soil"></span>Groeiplek</div>
+          <div class="field-row">
+            <div class="field">
+              <label>Gewenste grondsoort</label>
+              <input type="text" id="plantSoil" list="soilOptions" placeholder="bv. humusrijk, doorlatend">
+              <datalist id="soilOptions"><option>Klei</option><option>Zand</option><option>Veen</option><option>Leem</option><option>Potgrond</option></datalist>
+            </div>
+            <div class="field">
+              <label>Standplaats</label>
+              <select id="plantSun">
+                <option value="">— onbekend —</option>
+                <option>Volle zon</option><option>Halfschaduw</option><option>Schaduw</option>
+              </select>
+            </div>
+          </div>
         </div>
       </div>
     </details>
@@ -778,12 +796,13 @@
   </div>
 </div>
 
-<footer class="app-version mono">versie fix-22</footer>
+<footer class="app-version mono">versie fix-23</footer>
 
 <div class="toast" id="toast"></div>
 
 <!-- Firebase SDK -->
 <script type="module">
+  // fix-23: blok Verzorging ingedeeld in Snoeien, Bemesten, Bloei en Groeiplek; maanden als knopjes
   // fix-22: gegevens van het plantkaartje automatisch vastzetten; vinkje ook voor de bloeiperiode
   // fix-21: bij een foto eerst het plantkaartje lezen en overnemen, daarna pas aanvullen
   // fix-20: plant opzoeken met AI op naam of foto van het plantkaartje (Gemini of via Claude)
@@ -1215,7 +1234,30 @@
     $("plekSummary").textContent = ZONE_LABEL[zone] + " \u00b7 " + (pickedVak ? "vak " + pickedVak : "geen vak");
   }
   // Short line shown next to the Verzorging title, so the block is useful when closed.
+  function renderMonthChips() {
+    document.querySelectorAll(".month-chips").forEach(box => {
+      const sel = $(box.dataset.for);
+      if (!box.childElementCount) {
+        MONTHS.forEach((m, i) => {
+          const b = document.createElement("button");
+          b.type = "button"; b.className = "mchip"; b.textContent = m; b.dataset.m = i;
+          b.onclick = () => {
+            const o = sel.options[i];
+            o.selected = !o.selected;
+            sel.dispatchEvent(new Event("change", { bubbles: true }));
+          };
+          box.appendChild(b);
+        });
+      }
+      Array.from(box.children).forEach((b, i) => {
+        const on = !!(sel.options[i] && sel.options[i].selected);
+        b.classList.toggle("on", on);
+        b.setAttribute("aria-pressed", on ? "true" : "false");
+      });
+    });
+  }
   function updateCareBlockSummary() {
+    renderMonthChips();
     const bs = $("bloomStart").value, be = $("bloomEnd").value;
     const pm = Array.from($("pruneMonths").selectedOptions).map(o => MONTHS[Number(o.value)]);
     const parts = [];
@@ -1974,6 +2016,12 @@ ${JSON.stringify(list.map(p => ({ id: p.id, naam: p.name || "", latijnseNaam: p.
   // Twelve months, starting with the current one. Per month: what to prune, what to fertilise, what flowers.
   const MONTHS_FULL = ["januari", "februari", "maart", "april", "mei", "juni", "juli", "augustus", "september", "oktober", "november", "december"];
   const ICON_FERT = '<svg class="st-ico" viewBox="0 0 24 24" fill="none" stroke="#A87A1E" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" role="img" aria-label="Bemesten in deze maand"><title>Bemesten in deze maand</title><path d="M5 10h10v9a1.5 1.5 0 0 1-1.5 1.5h-7A1.5 1.5 0 0 1 5 19z"/><path d="M15 13.5l4.5-5"/><path d="M18 7l3 3"/><path d="M7.5 10V8.5a2.5 2.5 0 0 1 5 0V10"/></svg>';
+  const ICON_SOIL = '<svg class="st-ico" viewBox="0 0 24 24" fill="none" stroke="#5C4433" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M3 18h18"/><path d="M6 21h12"/><path d="M12 18v-6"/><path d="M12 12c0-3 2-5 5-5 0 3-2 5-5 5zM12 13c0-2.5-1.7-4.2-4.2-4.2 0 2.5 1.7 4.2 4.2 4.2z"/></svg>';
+  document.querySelectorAll(".cg-head .ic").forEach(el => {
+    // decorative here: drop the "in deze maand" title and hide from screen readers
+    el.innerHTML = ({ prune: ICON_PRUNE, fert: ICON_FERT, bloom: ICON_BLOOM, soil: ICON_SOIL }[el.dataset.ic] || "")
+      .replace(/<title>.*?<\/title>/, "").replace(/ role="img" aria-label="[^"]*"/, ' aria-hidden="true"');
+  });
   const byPlantName = (a, b) => (a.name || "").localeCompare(b.name || "", "nl", { sensitivity: "base" }) || (a.variety || "").localeCompare(b.variety || "", "nl");
   const monthRange = (p) => {
     const a = MONTHS[Number(p.bloomStart)], b = MONTHS[Number(p.bloomEnd)];
@@ -2365,7 +2413,7 @@ Verzin niets: bij twijfel "gevonden": false.`;
   function placeholderThumb() { return "data:image/svg+xml;utf8," + encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" width="44" height="44"><rect width="44" height="44" fill="#F0EBDD"/><text x="22" y="27" font-size="20" text-anchor="middle">🌱</text></svg>'); }
 </script>
 <script>
-  // fix-22: installeerbare app
+  // fix-23: installeerbare app
   if ("serviceWorker" in navigator) {
     window.addEventListener("load", () => navigator.serviceWorker.register("./sw.js").catch(() => {}));
   }
