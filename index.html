@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<!-- fix-19 -->
+<!-- fix-20 -->
 <title>Mijn Tuin — Plantenregister</title>
 <meta name="theme-color" content="#2C4A3B">
 <link rel="manifest" href="manifest.webmanifest">
@@ -264,6 +264,18 @@
   .cal-advice button{margin-top:8px;padding:5px 11px;font-size:0.76rem;}
   .check.lock{margin:6px 0 0;font-size:0.78rem;color:#4a4a40;}
   .check.lock input:checked + span{color:var(--moss);font-weight:600;}
+  /* Opzoeken met AI (fix-20) */
+  #blockLookup{background:#F3F6F1;border-color:var(--leaf);border-style:dashed;}
+  #blockLookup .block-body{border-top-style:dashed;border-top-color:var(--leaf);}
+  .row-inline{display:flex;gap:8px;align-items:center;flex-wrap:wrap;}
+  #lookupPreview{width:56px;height:56px;object-fit:cover;border-radius:8px;display:none;}
+  #lookupStatus{font-size:0.8rem;color:#4a4a40;margin:2px 0 10px;line-height:1.45;}
+  #lookupPhotos{margin:-4px 0 10px;}
+  .sub-details{font-size:0.8rem;margin-bottom:12px;}
+  .sub-details summary{cursor:pointer;color:var(--moss);font-weight:600;margin-bottom:6px;}
+  .sub-details p{margin:0 0 8px;color:#4a4a40;line-height:1.45;}
+  .sub-details textarea{width:100%;font-family:'IBM Plex Mono',monospace;font-size:0.7rem;border:1px solid var(--line);border-radius:8px;padding:8px;background:white;margin:8px 0 6px;}
+  .compare.single{grid-template-columns:1fr;}
   .cal-hint{background:#FBF4E2;border:1px solid #E8D4A0;border-radius:10px;padding:10px 12px;font-size:0.82rem;line-height:1.45;margin-bottom:14px;display:none;}
   .cal-hint button{margin-top:8px;padding:6px 12px;font-size:0.78rem;}
   .cal-advice .note{font-size:0.74rem;color:#8a8a78;margin-top:4px;}
@@ -543,6 +555,27 @@
       <div id="idStatus" style="font-size:0.78rem;color:#8a8a78;margin-top:6px;"></div>
     </div>
 
+    <details class="block" id="blockLookup">
+      <summary><span class="block-title">Opzoeken met AI</span><span class="block-sum">op naam of plantkaartje</span></summary>
+      <div class="block-body">
+        <div class="field"><label>Naam (bijvoorbeeld van het plantkaartje)</label><input type="text" id="lookupName" placeholder="bv. Hortensia Annabelle"></div>
+        <div class="field">
+          <label>Of een foto van het plantkaartje</label>
+          <div class="row-inline"><img id="lookupPreview" alt="Foto van het plantkaartje"><input type="file" id="lookupPhotoInput" accept="image/*"></div>
+        </div>
+        <div class="care-fetch"><button class="btn-outline" id="lookupBtn" type="button">Opzoeken met Gemini</button></div>
+        <div id="lookupStatus"></div>
+        <div class="sug-photos" id="lookupPhotos" style="display:none;"></div>
+        <details class="sub-details">
+          <summary>Lukt het niet? Via Claude</summary>
+          <p>Kopieer de opdracht en plak hem in een chat met Claude. Heb je een foto van het kaartje, voeg die daar toe. Plak het antwoord van Claude hieronder.</p>
+          <button class="btn-outline" id="lookupClaudeCopyBtn" type="button">Opdracht kopiëren</button>
+          <textarea id="lookupClaudeText" rows="4" placeholder='{"gevonden": true, "naam": "...", ...}' aria-label="Antwoord van Claude"></textarea>
+          <button class="btn-outline" id="lookupClaudeUseBtn" type="button">Antwoord gebruiken</button>
+        </details>
+      </div>
+    </details>
+
     <div class="field">
       <label>Foto</label>
       <input type="file" id="plantPhotoInput" accept="image/*">
@@ -741,12 +774,13 @@
   </div>
 </div>
 
-<footer class="app-version mono">versie fix-19</footer>
+<footer class="app-version mono">versie fix-20</footer>
 
 <div class="toast" id="toast"></div>
 
 <!-- Firebase SDK -->
 <script type="module">
+  // fix-20: plant opzoeken met AI op naam of foto van het plantkaartje (Gemini of via Claude)
   // fix-19: snoei- en bemestingsadvies per plant vastzetten tegen automatisch ophalen
   // fix-18: kalender leidt bemestmaanden af uit het bemestingsadvies als ze ontbreken
   // fix-17: tabbladen Tuin, Planten en Kalender; bemestmaanden per plant
@@ -1189,7 +1223,7 @@
     $("careBlockSummary").textContent = parts.join(" \u00b7 ") || "nog niet ingevuld";
   }
   $("blockCare").addEventListener("change", updateCareBlockSummary);
-  ["blockPlek", "blockCare"].forEach(id => {
+  ["blockPlek", "blockCare", "blockLookup"].forEach(id => {
     const el = $(id);
     try { if (localStorage.getItem("mijntuin." + id) === "0") el.open = false; } catch {}
     el.addEventListener("toggle", () => { try { localStorage.setItem("mijntuin." + id, el.open ? "1" : "0"); } catch {} });
@@ -1358,6 +1392,10 @@
     $("idResults").innerHTML = "";
     $("idStatus").textContent = "";
     $("careFetchStatus").textContent = "";
+    lookupPhoto = null;
+    $("lookupName").value = ""; $("lookupPhotoInput").value = ""; $("lookupPreview").style.display = "none";
+    $("lookupStatus").textContent = ""; $("lookupClaudeText").value = "";
+    $("lookupPhotos").style.display = "none"; $("lookupPhotos").innerHTML = "";
     updateCareBlockSummary();
     $("deletePlantBtn").style.display = plant ? "inline-block" : "none";
     $("plantModalBackdrop").classList.add("active");
@@ -1495,6 +1533,8 @@
     lightboxCtx = { latin, common, photos };
     $("lbTitle").textContent = latin + (common ? " \u2014 " + common : "");
     $("lbMine").src = idPhotoDataUrl || "";
+    $("lbMine").closest("figure").style.display = idPhotoDataUrl ? "" : "none";
+    $("lbMine").closest(".compare").classList.toggle("single", !idPhotoDataUrl);
     const thumbs = $("lbThumbs");
     thumbs.innerHTML = "";
     photos.forEach((ph, i) => {
@@ -1658,6 +1698,12 @@
   const monthIdx = (v) => { const n = Number(v); return Number.isInteger(n) && n >= 1 && n <= 12 ? n - 1 : null; };
 
   // The question that is put to the AI. viaClaude: worded as a task that ends in a file to import.
+  const CARE_FIELDS = `- "bloeiVan" en "bloeiTot": maandnummer 1-12 van begin en einde van de bloei, of null als de plant niet (zichtbaar) bloeit of je het niet weet
+- "snoeimaanden": array met maandnummers 1-12 waarin je snoeit of terugknipt; leeg als snoeien niet nodig is
+- "bemestmaanden": array met maandnummers 1-12 waarin je bemest; leeg als bemesten niet nodig is
+- "snoeiadvies": praktisch snoeiadvies in het Nederlands, hooguit twee korte zinnen; schrijf "Snoeien is niet nodig." als dat zo is
+- "bemesting": praktisch bemestingsadvies in het Nederlands (wanneer en waarmee), hooguit twee korte zinnen; schrijf "Bemesten is niet nodig." als dat zo is
+- "grondsoort": de grond waarin de plant het liefst staat, in hooguit zes woorden, bijvoorbeeld "humusrijk, vochtig, licht zuur"`;
   function carePromptText(list, viaClaude) {
     return `Je bent een Nederlandse tuinexpert. Geef voor elke plant hieronder de gegevens voor een tuin in Nederland.
 ${viaClaude
@@ -1665,12 +1711,7 @@ ${viaClaude
   : "Antwoord uitsluitend met een JSON-array, één object per plant, in dezelfde volgorde, met precies deze velden:"}
 - "id": het id van de plant, ongewijzigd
 ${viaClaude ? '- "naam": de naam van de plant, ongewijzigd\n' : ""}- "herkend": true als je de plant kent, anders false
-- "bloeiVan" en "bloeiTot": maandnummer 1-12 van begin en einde van de bloei, of null als de plant niet (zichtbaar) bloeit of je het niet weet
-- "snoeimaanden": array met maandnummers 1-12 waarin je snoeit of terugknipt; leeg als snoeien niet nodig is
-- "bemestmaanden": array met maandnummers 1-12 waarin je bemest; leeg als bemesten niet nodig is
-- "snoeiadvies": praktisch snoeiadvies in het Nederlands, hooguit twee korte zinnen; schrijf "Snoeien is niet nodig." als dat zo is
-- "bemesting": praktisch bemestingsadvies in het Nederlands (wanneer en waarmee), hooguit twee korte zinnen; schrijf "Bemesten is niet nodig." als dat zo is
-- "grondsoort": de grond waarin de plant het liefst staat, in hooguit zes woorden, bijvoorbeeld "humusrijk, vochtig, licht zuur"
+${CARE_FIELDS}
 Verzin niets: bij twijfel "herkend": false.
 
 Planten:
@@ -1715,11 +1756,12 @@ ${JSON.stringify(list.map(p => ({ id: p.id, naam: p.name || "", latijnseNaam: p.
   }
 
   // list: [{ id, name, latin, variety }] -> { id: { bloomStart, bloomEnd, pruneMonths, pruningAdvice } }
-  async function fetchCare(list) {
+  // Sends parts (text, and optionally an image) to Gemini and returns the answer text.
+  // Tries the models in order, retrying when Google is busy; see geminiFetch.
+  async function geminiGenerate(parts) {
     const key = localStorage.getItem("geminiApiKey");
     if (!key) throw new Error("vul eerst je Gemini API-key in bij Instellingen");
     const models = await pickGeminiModels(key);
-    const prompt = carePromptText(list, false);
     // Try the best model first (twice); when it stays overloaded or over its limit, move on to the next one.
     let res, silent = 0;
     const tried = [];
@@ -1730,7 +1772,7 @@ ${JSON.stringify(list.map(p => ({ id: p.id, naam: p.name || "", latijnseNaam: p.
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
-            contents: [{ role: "user", parts: [{ text: prompt }] }],
+            contents: [{ role: "user", parts }],
             generationConfig: { temperature: 0.2, responseMimeType: "application/json" },
           }),
         }, 2, "Model " + models[m]);
@@ -1756,7 +1798,11 @@ ${JSON.stringify(list.map(p => ({ id: p.id, naam: p.name || "", latijnseNaam: p.
       throw new Error(base + await geminiDetail(res, tried));
     }
     const json = await res.json();
-    let text = ((json.candidates || [])[0]?.content?.parts || []).map(pt => pt.text || "").join("").trim();
+    return ((json.candidates || [])[0]?.content?.parts || []).map(pt => pt.text || "").join("").trim();
+  }
+
+  async function fetchCare(list) {
+    const text = await geminiGenerate([{ text: carePromptText(list, false) }]);
     careReport("Antwoord ontvangen, gegevens uitlezen");
     try { return parseCareRows(text, list, true).care; }
     catch { throw new Error("het antwoord van Gemini was niet leesbaar"); }
@@ -2089,6 +2135,129 @@ ${JSON.stringify(list.map(p => ({ id: p.id, naam: p.name || "", latijnseNaam: p.
   };
   $("careImportTextBtn").onclick = () => importCare($("careImportText").value);
 
+  // ---------- Opzoeken met AI: op naam of foto van het plantkaartje (fix-20) ----------
+  let lookupPhoto = null;
+  function lookupPromptText(name, hasPhoto, viaClaude) {
+    const what = viaClaude
+      ? (name ? `de naam "${name}" en/of ` : "") + "de foto van het plantkaartje als ik die in deze chat meestuur"
+      : [name ? `de naam "${name}"` : "", hasPhoto ? "de bijgevoegde foto van het plantkaartje" : ""].filter(Boolean).join(" en ");
+    return `Je bent een Nederlandse tuinexpert. Zoek de plant op aan de hand van ${what}. Lees bij een foto de naam, het ras en de kleur van het kaartje. Geef de gegevens voor een tuin in Nederland.
+${viaClaude ? "Antwoord met uitsluitend één JSON-object in een codeblok, zonder verdere uitleg," : "Antwoord uitsluitend met één JSON-object,"} met precies deze velden:
+- "gevonden": true als je de plant met redelijke zekerheid herkent, anders false
+- "naam": de gangbare Nederlandse naam
+- "latijnseNaam": de botanische naam (geslacht en soort)
+- "varieteitOfKleur": het ras of de bloemkleur, zoals op het kaartje of in de naam; anders ""
+- "soort": precies één van: ${CATEGORIES.join(", ")}
+- "standplaats": "Volle zon", "Halfschaduw", "Schaduw" of ""
+- "toelichting": één korte zin over wat je hebt gevonden en hoe zeker je bent
+${CARE_FIELDS}
+Verzin niets: bij twijfel "gevonden": false.`;
+  }
+  function parseLookup(text) {
+    const t = String(text).trim().replace(/^```(?:json)?\s*/i, "").replace(/```\s*$/, "");
+    const a = t.indexOf("{"), b = t.lastIndexOf("}");
+    let o = JSON.parse(a !== -1 && b > a ? t.slice(a, b + 1) : t);
+    if (Array.isArray(o)) o = o[0];
+    if (!o || typeof o !== "object") throw new Error("leeg antwoord");
+    return o;
+  }
+  // Put care values in the form; locked advice stays as it is.
+  function fillCareForm(care) {
+    const keepPrune = $("lockPruning").checked, keepFert = $("lockFertilizing").checked;
+    $("bloomStart").value = care.bloomStart ?? "";
+    $("bloomEnd").value = care.bloomEnd ?? "";
+    if (!keepPrune) {
+      Array.from($("pruneMonths").options).forEach(o => o.selected = care.pruneMonths.includes(Number(o.value)));
+      if (care.pruningAdvice) $("plantPruning").value = care.pruningAdvice;
+    }
+    if (!keepFert) {
+      Array.from($("fertMonths").options).forEach(o => o.selected = care.fertilizeMonths.includes(Number(o.value)));
+      if (care.fertilizing) $("plantFertilizing").value = care.fertilizing;
+    }
+    if (care.soil) $("plantSoil").value = care.soil;
+    updateCareBlockSummary();
+    return [keepPrune && "snoeiadvies", keepFert && "bemestingsadvies"].filter(Boolean);
+  }
+  function applyLookup(o) {
+    const st = $("lookupStatus");
+    const strip = $("lookupPhotos");
+    strip.style.display = "none"; strip.innerHTML = "";
+    if (o.gevonden === false) {
+      st.textContent = "Niet gevonden" + (o.toelichting ? ": " + o.toelichting : ".") + " Probeer een andere schrijfwijze of een scherpere foto.";
+      return;
+    }
+    const filled = [];
+    const set = (id, v, label) => { if (typeof v === "string" && v.trim()) { $(id).value = v.trim(); filled.push(label); } };
+    set("plantName", o.naam, "naam");
+    set("plantLatin", o.latijnseNaam, "Latijnse naam");
+    set("plantVariety", o.varieteitOfKleur, "variëteit of kleur");
+    if (CATEGORIES.includes(o.soort)) { $("plantCategory").value = o.soort; filled.push("soort"); }
+    if (["Volle zon", "Halfschaduw", "Schaduw"].includes(o.standplaats)) { $("plantSun").value = o.standplaats; filled.push("standplaats"); }
+    let kept = [];
+    const care = parseCareRows(JSON.stringify([{ ...o, id: "x", herkend: true }]), [{ id: "x" }], true).care.x;
+    if (care) { kept = fillCareForm(care); filled.push("verzorging"); }
+    st.textContent = (filled.length ? "Ingevuld: " + filled.join(", ") + ". " : "")
+      + (o.toelichting ? o.toelichting.trim() + " " : "")
+      + (kept.length ? `Vastgezet ${kept.join(" en ")} is niet aangepast. ` : "")
+      + "Kijk het na en kies Opslaan.";
+    // Example photos of what was found, to check it against the plant.
+    const latin = (o.latijnseNaam || "").trim();
+    if (latin) {
+      fetchExamplePhotos(latin).then(photos => {
+        if (!photos.length) return;
+        strip.style.display = "flex";
+        photos.forEach((ph, i) => {
+          const img = document.createElement("img");
+          img.src = ph.thumb; img.loading = "lazy"; img.alt = "Voorbeeld van " + latin;
+          img.onclick = () => openLightbox(latin, o.naam || "", photos, i);
+          strip.appendChild(img);
+        });
+      }).catch(() => {});
+    }
+  }
+  $("lookupPhotoInput").onchange = async (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+    lookupPhoto = await fileToDataURL(file, 1400);
+    $("lookupPreview").src = lookupPhoto;
+    $("lookupPreview").style.display = "block";
+  };
+  $("lookupBtn").onclick = async () => {
+    const st = $("lookupStatus");
+    const name = $("lookupName").value.trim() || $("plantName").value.trim();
+    if (!name && !lookupPhoto) { st.textContent = "Vul een naam in of kies een foto van het plantkaartje."; return; }
+    $("lookupBtn").disabled = true;
+    const started = Date.now();
+    careReport = (msg) => { st.textContent = `Bezig (${Math.round((Date.now() - started) / 1000)} s): ${msg}`; };
+    careReport("opzoeken");
+    try {
+      const parts = [{ text: lookupPromptText(name, !!lookupPhoto, false) }];
+      if (lookupPhoto) parts.push({ inline_data: { mime_type: "image/jpeg", data: lookupPhoto.split(",")[1] } });
+      const text = await geminiGenerate(parts);
+      let o;
+      try { o = parseLookup(text); } catch { throw new Error("het antwoord van Gemini was niet leesbaar"); }
+      applyLookup(o);
+    } catch (err) {
+      st.textContent = "Opzoeken mislukt: " + err.message + ". Probeer het via Claude (hieronder).";
+    } finally { $("lookupBtn").disabled = false; careReport = () => {}; }
+  };
+  $("lookupClaudeCopyBtn").onclick = async () => {
+    const name = $("lookupName").value.trim() || $("plantName").value.trim();
+    const text = lookupPromptText(name, !!lookupPhoto, true);
+    let ok = false;
+    try { await navigator.clipboard.writeText(text); ok = true; } catch {}
+    if (!ok) { const ta = $("lookupClaudeText"); ta.value = text; ta.focus(); ta.select(); try { ok = document.execCommand("copy"); } catch {} ta.value = ""; }
+    $("lookupStatus").textContent = ok
+      ? "Opdracht gekopieerd. Plak hem in een chat met Claude" + (lookupPhoto ? " en voeg de foto van het kaartje toe." : ".") + " Plak daarna het antwoord hieronder."
+      : "Kopiëren lukte niet automatisch.";
+  };
+  $("lookupClaudeUseBtn").onclick = () => {
+    const st = $("lookupStatus");
+    let o;
+    try { o = parseLookup($("lookupClaudeText").value); } catch { st.textContent = "Dit antwoord kan ik niet lezen. Plak het hele antwoord van Claude, met de accolades { }."; return; }
+    applyLookup(o);
+  };
+
   // ---------- Terugknop ----------
   // One extra history entry sits "in front of" the app. Pressing back removes it, which we notice:
   // an open window is closed, otherwise a hint is shown. Only a second press shortly after leaves the app.
@@ -2148,7 +2317,7 @@ ${JSON.stringify(list.map(p => ({ id: p.id, naam: p.name || "", latijnseNaam: p.
   function placeholderThumb() { return "data:image/svg+xml;utf8," + encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" width="44" height="44"><rect width="44" height="44" fill="#F0EBDD"/><text x="22" y="27" font-size="20" text-anchor="middle">🌱</text></svg>'); }
 </script>
 <script>
-  // fix-19: installeerbare app
+  // fix-20: installeerbare app
   if ("serviceWorker" in navigator) {
     window.addEventListener("load", () => navigator.serviceWorker.register("./sw.js").catch(() => {}));
   }
