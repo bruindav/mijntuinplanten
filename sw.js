@@ -1,7 +1,7 @@
-// fix-17
+// fix-18
 // Service worker voor Mijn Tuin: maakt de app installeerbaar.
 // Netwerk eerst, zodat een nieuwe versie direct zichtbaar is; de cache is alleen de terugval zonder verbinding.
-const CACHE = "mijntuin-fix-17";
+const CACHE = "mijntuin-fix-18";
 const SHELL = [
   "./",
   "./index.html",

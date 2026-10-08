@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<!-- fix-17 -->
+<!-- fix-18 -->
 <title>Mijn Tuin — Plantenregister</title>
 <meta name="theme-color" content="#2C4A3B">
 <link rel="manifest" href="manifest.webmanifest">
@@ -262,6 +262,9 @@
   .cal-advice .lbl{font-size:0.7rem;text-transform:uppercase;letter-spacing:0.06em;color:#8a8a78;font-weight:700;margin-bottom:3px;}
   .cal-advice .empty{color:#8a8a78;font-style:italic;}
   .cal-advice button{margin-top:8px;padding:5px 11px;font-size:0.76rem;}
+  .cal-hint{background:#FBF4E2;border:1px solid #E8D4A0;border-radius:10px;padding:10px 12px;font-size:0.82rem;line-height:1.45;margin-bottom:14px;display:none;}
+  .cal-hint button{margin-top:8px;padding:6px 12px;font-size:0.78rem;}
+  .cal-advice .note{font-size:0.74rem;color:#8a8a78;margin-top:4px;}
   .cal-empty{color:#8a8a78;font-size:0.84rem;padding:10px 0 4px;}
   .map-note{font-size:0.72rem;color:#8a8a78;margin:6px 0 0;}
 
@@ -506,6 +509,10 @@
     <section class="cal-panel tab-panel" data-tab="kalender">
       <h2 class="display">Kalender</h2>
       <p class="sub">Per maand wat je moet snoeien, wat bemest moet worden en wat er bloeit. Tik op een plant voor het advies.</p>
+      <div class="cal-hint" id="calHint">
+        <div id="calHintText"></div>
+        <button class="btn-outline" id="calHintBtn" type="button">Verzorging ophalen</button>
+      </div>
       <div id="calendar"></div>
     </section>
   </div>
@@ -730,12 +737,13 @@
   </div>
 </div>
 
-<footer class="app-version mono">versie fix-17</footer>
+<footer class="app-version mono">versie fix-18</footer>
 
 <div class="toast" id="toast"></div>
 
 <!-- Firebase SDK -->
 <script type="module">
+  // fix-18: kalender leidt bemestmaanden af uit het bemestingsadvies als ze ontbreken
   // fix-17: tabbladen Tuin, Planten en Kalender; bemestmaanden per plant
   // fix-16: lijst sorteren op bloei of snoei, met bloeiers of te snoeien planten bovenaan
   // fix-15: zichtbaar logboek, teller en tijdslimiet bij verzorging ophalen
@@ -1884,6 +1892,7 @@ ${JSON.stringify(list.map(p => ({ id: p.id, naam: p.name || "", latijnseNaam: p.
     window.scrollTo(0, 0);
   }
   document.querySelectorAll(".tab-btn").forEach(b => { b.onclick = () => showTab(b.dataset.tab); });
+  $("calHintBtn").onclick = () => $("careAllBtn").click();
 
   // ---------- Kalender (fix-17) ----------
   // Twelve months, starting with the current one. Per month: what to prune, what to fertilise, what flowers.
@@ -1894,6 +1903,29 @@ ${JSON.stringify(list.map(p => ({ id: p.id, naam: p.name || "", latijnseNaam: p.
     const a = MONTHS[Number(p.bloomStart)], b = MONTHS[Number(p.bloomEnd)];
     return a === b ? a : `${a} t/m ${b}`;
   };
+  // Months named in a piece of advice text: "maart", "april t/m juni", "voorjaar", "zomer", "najaar".
+  const MONTH_RE = MONTHS_FULL.join("|");
+  function monthsFromText(text) {
+    const t = String(text || "").toLowerCase();
+    const out = new Set();
+    const idx = (w) => MONTHS_FULL.indexOf(w);
+    const rangeRe = new RegExp(`\\b(${MONTH_RE})\\b\\s*(?:t\\/m|tot en met|tot|\\-|\u2013)\\s*\\b(${MONTH_RE})\\b`, "g");
+    let m;
+    while ((m = rangeRe.exec(t))) {
+      for (let k = idx(m[1]); ; k = (k + 1) % 12) { out.add(k); if (k === idx(m[2])) break; }
+    }
+    for (const mm of t.matchAll(new RegExp(`\\b(${MONTH_RE})\\b`, "g"))) out.add(idx(mm[1]));
+    if (/\b(voorjaar|lente)\b/.test(t)) { out.add(2); out.add(3); }
+    if (/\bzomer\b/.test(t)) { out.add(5); out.add(6); }
+    if (/\b(najaar|herfst)\b/.test(t)) { out.add(8); out.add(9); }
+    if (/niet nodig/.test(t)) out.clear();
+    return [...out].sort((a, b) => a - b);
+  }
+  // Fertilising months of a plant: the stored ones, otherwise what the advice text mentions.
+  function fertMonthsOf(p) {
+    if (Array.isArray(p.fertilizeMonths) && p.fertilizeMonths.length) return { months: p.fertilizeMonths, derived: false };
+    return { months: monthsFromText(p.fertilizing), derived: true };
+  }
   function calItem(p, kind) {
     const wrap = document.createElement("div");
     const btn = document.createElement("button");
@@ -1909,7 +1941,8 @@ ${JSON.stringify(list.map(p => ({ id: p.id, naam: p.name || "", latijnseNaam: p.
     const body = kind === "bloom"
       ? `Bloeit van ${escapeHtml(monthRange(p))}.`
       : (text && text.trim() ? escapeHtml(text) : `<span class="empty">Nog geen ${kind === "prune" ? "snoeiadvies" : "bemestingsadvies"} ingevuld.</span>`);
-    adv.innerHTML = `<div class="lbl">${label}</div><div>${body}</div><button class="btn-outline" type="button">Plant openen</button>`;
+    const note = kind === "fert" && fertMonthsOf(p).derived ? '<div class="note">Maand afgeleid uit het bemestingsadvies; vul Bemestmaanden in om dit vast te leggen.</div>' : "";
+    adv.innerHTML = `<div class="lbl">${label}</div><div>${body}</div>${note}<button class="btn-outline" type="button">Plant openen</button>`;
     adv.querySelector("button").onclick = () => openPlantModal(p);
     btn.onclick = () => {
       const open = !adv.classList.contains("open");
@@ -1928,13 +1961,20 @@ ${JSON.stringify(list.map(p => ({ id: p.id, naam: p.name || "", latijnseNaam: p.
     const openMonths = new Set([...cal.querySelectorAll("details.cal-month[open]")].map(d => d.dataset.m));
     const openItems = new Set([...cal.querySelectorAll(".cal-item[aria-expanded='true']")].map(b => b.closest(".cal-sec").dataset.kind + ":" + b.closest("details").dataset.m + ":" + b.dataset.id));
     cal.innerHTML = "";
+    // Tell when plants have no fertilising months yet, and offer to fetch them.
+    const missing = plants.filter(p => !(p.fertilizeMonths || []).length && !/niet nodig/i.test(p.fertilizing || "")).length;
+    const derivedN = plants.filter(p => !(p.fertilizeMonths || []).length && fertMonthsOf(p).months.length).length;
+    $("calHint").style.display = missing ? "block" : "none";
+    $("calHintText").textContent = (missing === 1 ? "Bij 1 plant zijn nog geen bemestmaanden ingevuld." : `Bij ${missing} planten zijn nog geen bemestmaanden ingevuld.`)
+      + (derivedN ? ` ${derivedN === 1 ? "1 daarvan staat" : derivedN + " daarvan staan"} alvast bij Bemesten, op basis van de maand of het seizoen in het bemestingsadvies.` : "")
+      + " Vul de rest aan met Verzorging ophalen.";
     const now = new Date(), cur = now.getMonth();
     for (let k = 0; k < 12; k++) {
       const m = (cur + k) % 12;
       const year = now.getFullYear() + (cur + k >= 12 ? 1 : 0);
       const lists = {
         prune: plants.filter(p => Array.isArray(p.pruneMonths) && p.pruneMonths.includes(m)).sort(byPlantName),
-        fert: plants.filter(p => Array.isArray(p.fertilizeMonths) && p.fertilizeMonths.includes(m)).sort(byPlantName),
+        fert: plants.filter(p => fertMonthsOf(p).months.includes(m)).sort(byPlantName),
         bloom: plants.filter(p => p.bloomStart != null && p.bloomEnd != null && monthInRange(m, p.bloomStart, p.bloomEnd)).sort(byPlantName),
       };
       const det = document.createElement("details");
@@ -2089,7 +2129,7 @@ ${JSON.stringify(list.map(p => ({ id: p.id, naam: p.name || "", latijnseNaam: p.
   function placeholderThumb() { return "data:image/svg+xml;utf8," + encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" width="44" height="44"><rect width="44" height="44" fill="#F0EBDD"/><text x="22" y="27" font-size="20" text-anchor="middle">🌱</text></svg>'); }
 </script>
 <script>
-  // fix-17: installeerbare app
+  // fix-18: installeerbare app
   if ("serviceWorker" in navigator) {
     window.addEventListener("load", () => navigator.serviceWorker.register("./sw.js").catch(() => {}));
   }
