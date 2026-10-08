@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<!-- fix-24 -->
+<!-- fix-25 -->
 <title>Mijn Tuin — Plantenregister</title>
 <meta name="theme-color" content="#2C4A3B">
 <link rel="manifest" href="manifest.webmanifest">
@@ -299,6 +299,20 @@
   .mchip:active{transform:none;}
   .care-group.prune .mchip.on{background:#4B79A1;border-color:#4B79A1;color:white;}
   .care-group.fert .mchip.on{background:#C99A2E;border-color:#C99A2E;color:var(--ink);}
+  /* Tabbladen in het plantvenster (fix-25) */
+  .ptabs{display:flex;gap:4px;background:var(--paper-dim);border-radius:10px;padding:4px;margin:10px 0 16px;position:sticky;top:-20px;z-index:3;box-shadow:0 2px 0 var(--paper);}
+  .ptab-btn{flex:1;min-width:0;background:transparent;border-radius:7px;padding:7px 6px;display:flex;flex-direction:column;align-items:center;gap:1px;color:var(--soil);}
+  .ptab-btn:active{transform:none;}
+  .ptab-btn .pt{font-size:0.86rem;font-weight:700;}
+  .ptab-btn .ps{font-size:0.64rem;font-weight:500;color:#8a8a78;max-width:100%;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-height:0.8rem;}
+  .ptab-btn.active{background:var(--moss);color:var(--paper);}
+  .ptab-btn.active .ps{color:rgba(250,247,240,0.75);}
+  .ptab-panel{display:none;}
+  .ptab-panel.active{display:block;}
+  .ptab-sub{font-size:0.72rem;text-transform:uppercase;letter-spacing:0.06em;color:var(--leaf);font-weight:700;margin:18px 0 8px;border-top:1px solid var(--line);padding-top:14px;}
+  #blockIdentify{background:#F3F6F1;border-color:var(--leaf);border-style:dashed;}
+  #blockIdentify .block-body{border-top-style:dashed;border-top-color:var(--leaf);}
+  #blockIdentify .identify-box{border:none;background:transparent;padding:0;margin-bottom:10px;}
   .cal-hint{background:#FBF4E2;border:1px solid #E8D4A0;border-radius:10px;padding:10px 12px;font-size:0.82rem;line-height:1.45;margin-bottom:14px;display:none;}
   .cal-hint button{margin-top:8px;padding:6px 12px;font-size:0.78rem;}
   .cal-advice .note{font-size:0.74rem;color:#8a8a78;margin-top:4px;}
@@ -561,9 +575,38 @@
     <div class="close-row"><button id="closePlantModal">&times;</button></div>
     <h2 class="display" id="plantModalTitle">Nieuwe plant</h2>
 
+    <div class="ptabs" role="tablist" aria-label="Onderdelen van de plant">
+      <button class="ptab-btn" data-ptab="plant" role="tab" type="button"><span class="pt">Plant</span><span class="ps" id="plantTabSummary"></span></button>
+      <button class="ptab-btn" data-ptab="locatie" role="tab" type="button"><span class="pt">Locatie</span><span class="ps" id="plekSummary"></span></button>
+      <button class="ptab-btn" data-ptab="verzorging" role="tab" type="button"><span class="pt">Verzorging</span><span class="ps" id="careBlockSummary"></span></button>
+    </div>
+
+    <div class="ptab-panel" data-ptab="plant">
+    <div class="field-row">
+      <div class="field"><label>Naam</label><input type="text" id="plantName" placeholder="bv. Vlinderstruik"></div>
+      <div class="field"><label>Latijnse naam</label><input type="text" id="plantLatin" placeholder="bv. Buddleja davidii"></div>
+    </div>
+    <div class="field-row">
+      <div class="field"><label>Variëteit of kleur</label><input type="text" id="plantVariety" placeholder="bv. Moneymaker of rood"></div>
+      <div class="field">
+        <label>Soort</label>
+        <select id="plantCategory"></select>
+      </div>
+    </div>
+    <div class="field"><label>Geplant op</label><input type="date" id="plantDate"></div>
+    <div class="field">
+      <label>Foto</label>
+      <input type="file" id="plantPhotoInput" accept="image/*">
+      <img id="plantPhotoPreview" style="max-width:80px;border-radius:8px;margin-top:6px;display:none;">
+    </div>
+
+      <div class="ptab-sub">Plant zoeken</div>
+      <details class="block" id="blockIdentify" open>
+        <summary><span class="block-title">Herkennen op foto</span><span class="block-sum">Pl@ntNet of ObsIdentify</span></summary>
+        <div class="block-body">
     <div class="identify-box">
       <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;flex-wrap:wrap;gap:6px;">
-        <div style="font-size:0.78rem;font-weight:600;color:var(--soil);">Herkennen</div>
+        <div style="font-size:0.78rem;color:#6b6b5e;">Bron</div>
         <select id="idSource" style="font-size:0.78rem;padding:4px 6px;border:1px solid var(--line);border-radius:6px;background:white;">
           <option value="plantnet">Pl@ntNet</option>
           <option value="obsidentify">ObsIdentify (Naturalis)</option>
@@ -577,7 +620,8 @@
       <div id="idResults" style="margin-top:8px;"></div>
       <div id="idStatus" style="font-size:0.78rem;color:#8a8a78;margin-top:6px;"></div>
     </div>
-
+        </div>
+      </details>
     <details class="block" id="blockLookup">
       <summary><span class="block-title">Opzoeken met AI</span><span class="block-sum">op naam of plantkaartje</span></summary>
       <div class="block-body">
@@ -599,28 +643,10 @@
         </details>
       </div>
     </details>
+    </div>
 
-    <div class="field">
-      <label>Foto</label>
-      <input type="file" id="plantPhotoInput" accept="image/*">
-      <img id="plantPhotoPreview" style="max-width:80px;border-radius:8px;margin-top:6px;display:none;">
-    </div>
-    <div class="field-row">
-      <div class="field"><label>Naam</label><input type="text" id="plantName" placeholder="bv. Vlinderstruik"></div>
-      <div class="field"><label>Latijnse naam</label><input type="text" id="plantLatin" placeholder="bv. Buddleja davidii"></div>
-    </div>
-    <div class="field-row">
-      <div class="field"><label>Variëteit of kleur</label><input type="text" id="plantVariety" placeholder="bv. Moneymaker of rood"></div>
-      <div class="field">
-        <label>Soort</label>
-        <select id="plantCategory"></select>
-      </div>
-    </div>
-    <div class="field"><label>Geplant op</label><input type="date" id="plantDate"></div>
-
-    <details class="block" id="blockPlek" open>
-      <summary><span class="block-title">Plek</span><span class="block-sum" id="plekSummary"></span></summary>
-      <div class="block-body">
+    <div class="ptab-panel" data-ptab="locatie" id="blockPlek">
+      <div>
         <div class="field">
           <label>Tuin</label>
           <select id="plantZone">
@@ -635,11 +661,10 @@
         </div>
         <div class="field"><label>Plek / notitie</label><input type="text" id="plantLocationNote" placeholder="bv. bij de schutting"></div>
       </div>
-    </details>
+    </div>
 
-    <details class="block" id="blockCare" open>
-      <summary><span class="block-title">Verzorging</span><span class="block-sum" id="careBlockSummary"></span></summary>
-      <div class="block-body">
+    <div class="ptab-panel" data-ptab="verzorging" id="blockCare">
+      <div>
         <div class="care-fetch">
           <button class="btn-outline" id="careFetchBtn" type="button">Verzorging ophalen</button>
           <span class="st" id="careFetchStatus"></span>
@@ -682,7 +707,7 @@
           </div>
         </div>
       </div>
-    </details>
+    </div>
 
     <div class="modal-actions">
       <button class="btn-danger" id="deletePlantBtn" style="display:none;">Verwijderen</button>
@@ -799,12 +824,13 @@
   </div>
 </div>
 
-<footer class="app-version mono">versie fix-24</footer>
+<footer class="app-version mono">versie fix-25</footer>
 
 <div class="toast" id="toast"></div>
 
 <!-- Firebase SDK -->
 <script type="module">
+  // fix-25: plantvenster met tabbladen Plant, Locatie en Verzorging
   // fix-24: foto van de plant in het uitgeklapte kaartje in de kalender
   // fix-23: blok Verzorging ingedeeld in Snoeien, Bemesten, Bloei en Groeiplek; maanden als knopjes
   // fix-22: gegevens van het plantkaartje automatisch vastzetten; vinkje ook voor de bloeiperiode
@@ -1275,7 +1301,7 @@
     $("careBlockSummary").textContent = parts.join(" \u00b7 ") || "nog niet ingevuld";
   }
   $("blockCare").addEventListener("change", updateCareBlockSummary);
-  ["blockPlek", "blockCare", "blockLookup"].forEach(id => {
+  ["blockIdentify", "blockLookup"].forEach(id => {
     const el = $(id);
     try { if (localStorage.getItem("mijntuin." + id) === "0") el.open = false; } catch {}
     el.addEventListener("toggle", () => { try { localStorage.setItem("mijntuin." + id, el.open ? "1" : "0"); } catch {} });
@@ -1412,7 +1438,24 @@
   }
 
   // ---------- Plant modal ----------
+  // Tabs inside the plant window.
+  function showPlantTab(t) {
+    document.querySelectorAll(".ptab-panel").forEach(el => el.classList.toggle("active", el.dataset.ptab === t));
+    document.querySelectorAll(".ptab-btn").forEach(b => {
+      b.classList.toggle("active", b.dataset.ptab === t);
+      b.setAttribute("aria-selected", b.dataset.ptab === t ? "true" : "false");
+    });
+  }
+  document.querySelectorAll(".ptab-btn").forEach(b => { b.onclick = () => showPlantTab(b.dataset.ptab); });
+  function updatePlantTabSummary() {
+    const v = $("plantCategory").value;
+    $("plantTabSummary").textContent = [v, $("plantVariety").value.trim()].filter(Boolean).join(" \u00b7 ");
+  }
+  ["plantCategory", "plantVariety"].forEach(id => $(id).addEventListener("input", updatePlantTabSummary));
+  $("plantCategory").addEventListener("change", updatePlantTabSummary);
   function openPlantModal(plant, preset) {
+    showPlantTab("plant");
+    $("plantModalBackdrop").scrollTop = 0;
     currentEditId = plant ? plant.id : null;
     const zone = plant ? plantZone(plant) : (preset?.zone || currentZone);
     const vak = plant ? plantVak(plant) : (preset?.vak || "");
@@ -1452,6 +1495,7 @@
     $("lookupPhotos").style.display = "none"; $("lookupPhotos").innerHTML = "";
     updateCareBlockSummary();
     $("deletePlantBtn").style.display = plant ? "inline-block" : "none";
+    updatePlantTabSummary();
     $("plantModalBackdrop").classList.add("active");
   }
   const closePlantModal = () => $("plantModalBackdrop").classList.remove("active");
@@ -1469,7 +1513,7 @@
 
   $("savePlantBtn").onclick = async () => {
     const name = $("plantName").value.trim();
-    if (!name) { toast("Vul een naam in"); $("plantName").focus(); return; }
+    if (!name) { showPlantTab("plant"); toast("Vul een naam in"); $("plantName").focus(); return; }
     const pm = Array.from($("pruneMonths").selectedOptions).map(o => Number(o.value));
     // Bloom period stays empty (null) unless chosen; one month chosen = that single month.
     const bsRaw = $("bloomStart").value, beRaw = $("bloomEnd").value;
@@ -2296,6 +2340,7 @@ Verzin niets: bij twijfel "gevonden": false.`;
       line.innerHTML = `<b>Vastgezet</b> (komt van het kaartje): ${escapeHtml(locked.join(", "))}`;
       box.appendChild(line);
     }
+    updatePlantTabSummary();
     st.textContent = (filled.length ? "Ingevuld: " + filled.join(", ") + ". " : "")
       + (o.toelichting ? o.toelichting.trim() + " " : "")
       + (kept.length ? `Vastgezet ${kept.join(" en ")} is niet aangepast. ` : "")
@@ -2417,7 +2462,7 @@ Verzin niets: bij twijfel "gevonden": false.`;
   function placeholderThumb() { return "data:image/svg+xml;utf8," + encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" width="44" height="44"><rect width="44" height="44" fill="#F0EBDD"/><text x="22" y="27" font-size="20" text-anchor="middle">🌱</text></svg>'); }
 </script>
 <script>
-  // fix-24: installeerbare app
+  // fix-25: installeerbare app
   if ("serviceWorker" in navigator) {
     window.addEventListener("load", () => navigator.serviceWorker.register("./sw.js").catch(() => {}));
   }
