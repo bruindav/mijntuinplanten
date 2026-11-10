@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<!-- fix-27 -->
+<!-- fix-28 -->
 <title>Mijn Tuin — Plantenregister</title>
 <meta name="theme-color" content="#2C4A3B">
 <link rel="manifest" href="manifest.webmanifest">
@@ -320,6 +320,16 @@
   /* Demo (fix-27) */
   .demo-banner{display:flex;gap:10px;align-items:center;justify-content:space-between;flex-wrap:wrap;background:#F3E2B4;color:var(--ink);font-size:0.8rem;line-height:1.4;padding:9px 16px;border-bottom:1px solid #E1C77E;}
   .demo-banner a{color:var(--moss);font-weight:700;white-space:nowrap;}
+  /* Startscherm en back-up (fix-28) */
+  @media(max-width:460px){ #signedOutView{margin:24px 14px;padding:22px 18px;} }
+  .start-option{border:1px solid var(--line);border-radius:12px;padding:14px;margin-top:14px;text-align:left;background:var(--paper);}
+  .start-option h3{margin:0 0 4px;font-size:1rem;}
+  .start-option p{margin:0 0 10px;font-size:0.85rem;}
+  .start-option button{width:100%;}
+  .btn-link{background:none;border:none;padding:0;color:var(--moss);text-decoration:underline;font-weight:700;font-size:inherit;}
+  .backup-row{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:8px;}
+  .backup-row button{flex:1;min-width:130px;}
+  #backupStatus{font-size:0.78rem;color:#4a4a40;line-height:1.45;min-height:1.1em;}
   .cal-hint{background:#FBF4E2;border:1px solid #E8D4A0;border-radius:10px;padding:10px 12px;font-size:0.82rem;line-height:1.45;margin-bottom:14px;display:none;}
   .cal-hint button{margin-top:8px;padding:6px 12px;font-size:0.78rem;}
   .cal-advice .note{font-size:0.74rem;color:#8a8a78;margin-top:4px;}
@@ -504,6 +514,10 @@
     <button class="tab-btn" data-tab="kalender" role="tab"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M3 10h18M8 3v4M16 3v4"/></svg>Kalender</button>
   </nav>
 </header>
+<div class="demo-banner" id="backupBanner" style="display:none;">
+  <span id="backupBannerText"></span>
+  <a href="#" id="backupBannerBtn">Back-up maken</a>
+</div>
 <div class="demo-banner" id="demoBanner" style="display:none;">
   <span>🌱 <b>Demo</b> met een fictieve tuin. Wat je wijzigt wordt niet bewaard en verdwijnt als je de pagina vernieuwt.</span>
   <a href="./" id="demoExitLink">Demo verlaten</a>
@@ -511,10 +525,18 @@
 
 <div id="signedOutView">
   <h2 class="display">Welkom in je tuinregister</h2>
-  <p>Log in om je plantvakken te bekijken en planten te registreren. Iedereen die inlogt deelt dezelfde tuin-data.</p>
-  <button class="btn-primary" id="signInBtn">Inloggen met Google</button>
-  <p style="margin-top:22px;border-top:1px solid var(--line);padding-top:16px;">Eerst rondkijken? Bekijk zonder inloggen een voorbeeldtuin met fictieve planten.</p>
-  <button class="btn-outline" id="demoBtn">Bekijk de demo</button>
+  <p>Houd bij wat er in je tuin staat, wanneer het bloeit en wanneer je moet snoeien en bemesten.</p>
+  <div class="start-option">
+    <h3>Zonder account</h3>
+    <p>Je tuin wordt alleen op dit apparaat bewaard, in deze browser. Maak af en toe een back-up via Instellingen.</p>
+    <button class="btn-primary" id="localBtn">Start op dit apparaat</button>
+  </div>
+  <div class="start-option">
+    <h3>Met account</h3>
+    <p>Voor de eigenaar van de tuin: gegevens staan in de cloud en zijn op elk apparaat gelijk.</p>
+    <button class="btn-outline" id="signInBtn">Inloggen met Google</button>
+  </div>
+  <p style="margin-top:18px;">Eerst rondkijken? <button class="btn-link" id="demoBtn">Bekijk de demo</button> met een voorbeeldtuin.</p>
 </div>
 
 <main id="mainView">
@@ -815,6 +837,13 @@
       <div class="field"><label>Achtertuin diepte (m)</label><input type="number" id="dimAchtertuinD" min="0.5" step="0.1" inputmode="decimal"></div>
     </div>
     <p style="font-size:0.74rem;color:#8a8a78;margin:-6px 0 0;">Elke tuin wordt verdeeld in plantvakken van 2 × 2 m.</p>
+    <div class="section-label">Back-up</div>
+    <div class="backup-row">
+      <button class="btn-outline" id="exportBtn" type="button">Exporteren</button>
+      <button class="btn-outline" id="importBtn" type="button">Importeren</button>
+      <input type="file" id="importFile" accept=".json,application/json" style="display:none;">
+    </div>
+    <div id="backupStatus"></div>
     <div class="section-label">Koppelingen</div>
     <div class="field">
       <label>Pl@ntNet API-key</label>
@@ -833,12 +862,13 @@
   </div>
 </div>
 
-<footer class="app-version mono">versie fix-27</footer>
+<footer class="app-version mono">versie fix-28</footer>
 
 <div class="toast" id="toast"></div>
 
 <!-- Firebase SDK -->
 <script type="module">
+  // fix-28: gebruik zonder account met opslag op het apparaat (IndexedDB); back-up exporteren en importeren
   // fix-27: demomodus met een fictieve tuin, los van Firebase (opslag in het geheugen)
   // fix-26: grondsoort kiezen met knopjes; velden in Groeiplek en Plant onder elkaar
   // fix-25: plantvenster met tabbladen Plant, Locatie en Verzorging
@@ -879,7 +909,14 @@
   // All reads and writes go through these seven functions. Normally they are Firebase's;
   // in the demo (?demo in the address) they work on a fictitious garden held in memory,
   // so nothing a visitor does reaches the real database. A local database can later plug in here too.
-  const DEMO = new URLSearchParams(location.search).has("demo");
+  const params = new URLSearchParams(location.search);
+  const DEMO = params.has("demo");
+  if (params.has("lokaal")) { try { localStorage.setItem("mijntuin.mode", "local"); } catch {} }
+  let savedMode = "";
+  try { savedMode = localStorage.getItem("mijntuin.mode") || ""; } catch {}
+  // Without an account the garden lives on this device (IndexedDB), never in the shared Firebase database.
+  const LOCAL = !DEMO && savedMode === "local";
+  const MODE = DEMO ? "demo" : LOCAL ? "lokaal" : "cloud";
   const DEMO_DATA = {
     garden: { dimVoortuinW: 6, dimVoortuinD: 4, dimAchtertuinW: 8, dimAchtertuinD: 12 },
     plants: [
@@ -936,13 +973,15 @@
         pruningAdvice: "Direct na de bloei in april de uitgebloeide takken flink terugknippen.", fertilizing: "In april organische mest." },
     ],
   };
-  function createMemoryStore(seed) {
+  // persist(data) is called after every change (used for the device storage).
+  function createMemoryStore(seed, persist) {
     const clone = (o) => JSON.parse(JSON.stringify(o));
-    const data = { garden: clone(seed.garden), plants: {} };
+    let data = { garden: clone(seed.garden), plants: {} };
     seed.plants.forEach(({ id, ...rest }) => { data.plants[id] = clone(rest); });
     const subs = { garden: [], plants: [] };
     let n = 0;
-    const fire = (kind) => setTimeout(() => {
+    const fire = (kind) => { if (persist) persist(data); return fireOnly(kind); };
+    const fireOnly = (kind) => setTimeout(() => {
       if (kind === "garden") subs.garden.forEach(cb => cb({ data: () => clone(data.garden) }));
       else {
         const docs = Object.entries(data.plants).map(([id, d]) => ({ id, data: () => clone(d) }));
@@ -950,15 +989,24 @@
       }
     }, 0);
     return {
+      load(state) {
+        data = { garden: clone(state.garden || {}), plants: clone(state.plants || {}) };
+        n = Object.keys(data.plants).length;
+        fireOnly("garden"); fireOnly("plants");
+      },
       collection: () => ({ kind: "plants" }),
       doc: (a, ...rest) => (a && a.kind === "plants") ? { kind: "plant", id: rest[0] } : { kind: "garden" },
       onSnapshot(ref, cb) {
         const kind = ref.kind === "plants" ? "plants" : "garden";
-        subs[kind].push(cb); fire(kind);
+        subs[kind].push(cb); fireOnly(kind);
         return () => { subs[kind] = subs[kind].filter(f => f !== cb); };
       },
       async setDoc(ref, d, opts) { data.garden = opts && opts.merge ? { ...data.garden, ...clone(d) } : clone(d); fire("garden"); },
-      async addDoc(col, d) { const id = "demo-nieuw-" + (++n); data.plants[id] = clone(d); fire("plants"); return { id }; },
+      async addDoc(col, d) {
+        let id;
+        do { id = (DEMO ? "demo-nieuw-" : "p") + (++n) + (DEMO ? "" : "-" + Date.now().toString(36)); } while (data.plants[id]);
+        data.plants[id] = clone(d); fire("plants"); return { id };
+      },
       async updateDoc(ref, d) {
         if (!data.plants[ref.id]) throw new Error("plant niet gevonden");
         Object.assign(data.plants[ref.id], clone(d)); fire("plants");
@@ -966,7 +1014,39 @@
       async deleteDoc(ref) { delete data.plants[ref.id]; fire("plants"); },
     };
   }
+  // ---------- Opslag op dit apparaat (IndexedDB) ----------
+  // Its own database name, so it never mixes with the other apps on bruindav.github.io.
+  const IDB_NAME = "mijntuinplanten-lokaal", IDB_STORE = "data";
+  function idbOpen() {
+    return new Promise((resolve, reject) => {
+      const r = indexedDB.open(IDB_NAME, 1);
+      r.onupgradeneeded = () => r.result.createObjectStore(IDB_STORE);
+      r.onsuccess = () => resolve(r.result);
+      r.onerror = () => reject(r.error);
+    });
+  }
+  async function idbGet(key) {
+    const dbh = await idbOpen();
+    return new Promise((resolve, reject) => {
+      const q = dbh.transaction(IDB_STORE, "readonly").objectStore(IDB_STORE).get(key);
+      q.onsuccess = () => resolve(q.result); q.onerror = () => reject(q.error);
+    });
+  }
+  async function idbSet(key, value) {
+    const dbh = await idbOpen();
+    return new Promise((resolve, reject) => {
+      const tx = dbh.transaction(IDB_STORE, "readwrite");
+      tx.objectStore(IDB_STORE).put(value, key);
+      tx.oncomplete = () => resolve(); tx.onerror = () => reject(tx.error);
+    });
+  }
+  let saveChain = Promise.resolve();
+  function persistLocal(data) {
+    const copy = JSON.parse(JSON.stringify(data));
+    saveChain = saveChain.then(() => idbSet("state", copy)).catch(err => toast("Opslaan op dit apparaat mislukt: " + err.message));
+  }
   const store = DEMO ? createMemoryStore(DEMO_DATA)
+    : LOCAL ? createMemoryStore({ garden: {}, plants: [] }, persistLocal)
     : { collection: fsCollection, doc: fsDoc, addDoc: fsAddDoc, updateDoc: fsUpdateDoc, deleteDoc: fsDeleteDoc, onSnapshot: fsOnSnapshot, setDoc: fsSetDoc };
   const { collection, doc, addDoc, updateDoc, deleteDoc, onSnapshot, setDoc } = store;
 
@@ -1069,7 +1149,12 @@
 
   // ---------- Auth ----------
   $("signInBtn").onclick = () => signInWithPopup(auth, provider).catch(e => toast(e.message));
-  $("signOutBtn").onclick = () => { if (DEMO) location.href = location.pathname; else signOut(auth); };
+  $("signOutBtn").onclick = () => {
+    if (DEMO) location.href = location.pathname;
+    else if (LOCAL) { try { localStorage.removeItem("mijntuin.mode"); } catch {} location.href = location.pathname; } // data stays on the device
+    else signOut(auth);
+  };
+  $("localBtn").onclick = () => { try { localStorage.setItem("mijntuin.mode", "local"); } catch {} location.href = location.pathname; };
   $("demoBtn").onclick = () => { location.href = location.pathname + "?demo"; };
 
   function setSignedIn(user) {
@@ -1101,6 +1186,15 @@
     document.title = "Mijn Tuin — demo";
     document.querySelector(".app-version").textContent += " \u00b7 demo";
     setTimeout(() => { setSignedIn({ uid: "demo" }); loadDemoPhotos(); }, 0);
+  } else if (LOCAL) {
+    $("signOutBtn").textContent = "Startscherm";
+    document.querySelector(".app-version").textContent += " \u00b7 op dit apparaat";
+    (async () => {
+      try { const st = await idbGet("state"); if (st) store.load(st); }
+      catch (err) { toast("Opslag op dit apparaat is niet beschikbaar: " + err.message); }
+      try { if (navigator.storage && navigator.storage.persist) await navigator.storage.persist(); } catch {}
+      setSignedIn({ uid: "local" });
+    })();
   } else {
     onAuthStateChanged(auth, setSignedIn);
   }
@@ -1473,6 +1567,7 @@
   function listenPlants() {
     onSnapshot(plantsCol, snap => {
       plants = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+      updateBackupBanner();
       renderList();
       renderGrid();
       renderCalendar();
@@ -2561,6 +2656,69 @@ Verzin niets: bij twijfel "gevonden": false.`;
     applyLookup(o);
   };
 
+  // ---------- Back-up: exporteren en importeren (fix-28) ----------
+  const today = () => new Date().toISOString().slice(0, 10);
+  function lastBackup() { try { return Number(localStorage.getItem("mijntuin.lastBackup." + MODE)) || 0; } catch { return 0; } }
+  function updateBackupBanner() {
+    if (!LOCAL) return;
+    const last = lastBackup();
+    const old = !last || Date.now() - last > 30 * 24 * 3600 * 1000;
+    const show = plants.length > 0 && old;
+    $("backupBanner").style.display = show ? "flex" : "none";
+    if (show) $("backupBannerText").textContent = "Je tuin staat alleen op dit apparaat. "
+      + (last ? `Je laatste back-up is van ${new Date(last).toLocaleDateString("nl-NL")}.` : "Je hebt nog geen back-up gemaakt.");
+  }
+  async function storageInfo() {
+    if (!LOCAL) return "";
+    try {
+      const persisted = navigator.storage && navigator.storage.persisted ? await navigator.storage.persisted() : false;
+      return persisted ? " De browser bewaart je tuin blijvend." : " Let op: de browser mag je tuin opruimen als het apparaat vol raakt. Een back-up is dus verstandig.";
+    } catch { return ""; }
+  }
+  function exportGarden() {
+    const payload = { app: "mijntuinplanten", versie: "fix-28", gemaakt: new Date().toISOString(), bron: MODE, garden: gardenData, plants: plants.map(p => ({ ...p })) };
+    const url = URL.createObjectURL(new Blob([JSON.stringify(payload, null, 1)], { type: "application/json" }));
+    const a = document.createElement("a");
+    a.href = url; a.download = `mijn-tuin-${today()}.json`;
+    document.body.appendChild(a); a.click(); a.remove();
+    setTimeout(() => URL.revokeObjectURL(url), 2000);
+    try { localStorage.setItem("mijntuin.lastBackup." + MODE, String(Date.now())); } catch {}
+    updateBackupBanner();
+    return `Back-up gemaakt: mijn-tuin-${today()}.json met ${plants.length} ${plants.length === 1 ? "plant" : "planten"}. Bewaar het bestand op een veilige plek.`;
+  }
+  async function importGarden(text) {
+    let d;
+    try { d = JSON.parse(text); } catch { return "Dit bestand kan ik niet lezen."; }
+    if (!d || d.app !== "mijntuinplanten" || !Array.isArray(d.plants)) return "Dit is geen back-up van Mijn Tuin.";
+    const when = d.gemaakt ? new Date(d.gemaakt).toLocaleDateString("nl-NL") : "onbekende datum";
+    if (!confirm(`${d.plants.length} planten importeren uit de back-up van ${when}?\n\nPlanten die hier al staan worden bijgewerkt, nieuwe worden toegevoegd. Er wordt niets verwijderd.`)) return "Importeren geannuleerd.";
+    let added = 0, updated = 0;
+    try {
+      if (d.garden && typeof d.garden === "object") await setDoc(gardenDocRef, d.garden, { merge: true });
+      for (const p of d.plants) {
+        const { id, ...rest } = p || {};
+        if (!rest || typeof rest !== "object") continue;
+        if (id && plants.some(x => x.id === id)) { await updateDoc(doc(plantsCol, id), rest); updated++; }
+        else { await addDoc(plantsCol, rest); added++; }
+      }
+    } catch (err) { return `Importeren gestopt na ${added + updated} planten: ${err.message}`; }
+    return `Ge\u00efmporteerd: ${added} toegevoegd, ${updated} bijgewerkt.`;
+  }
+  $("exportBtn").onclick = async () => { $("backupStatus").textContent = exportGarden() + await storageInfo(); };
+  $("backupBannerBtn").onclick = (e) => { e.preventDefault(); toast(exportGarden()); };
+  $("importBtn").onclick = () => $("importFile").click();
+  $("importFile").onchange = async (e) => {
+    const f = e.target.files[0];
+    e.target.value = "";
+    if (!f) return;
+    $("backupStatus").textContent = "Bezig met importeren\u2026";
+    $("backupStatus").textContent = await importGarden(await f.text());
+  };
+  $("settingsBtn").addEventListener("click", async () => {
+    $("backupStatus").textContent = (LOCAL ? "Je tuin staat alleen op dit apparaat." : DEMO ? "Dit is de demo; een export bevat de voorbeeldtuin." : "Je tuin staat in de cloud.")
+      + await storageInfo();
+  });
+
   // ---------- Terugknop ----------
   // One extra history entry sits "in front of" the app. Pressing back removes it, which we notice:
   // an open window is closed, otherwise a hint is shown. Only a second press shortly after leaves the app.
@@ -2620,7 +2778,7 @@ Verzin niets: bij twijfel "gevonden": false.`;
   function placeholderThumb() { return "data:image/svg+xml;utf8," + encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" width="44" height="44"><rect width="44" height="44" fill="#F0EBDD"/><text x="22" y="27" font-size="20" text-anchor="middle">🌱</text></svg>'); }
 </script>
 <script>
-  // fix-27: installeerbare app
+  // fix-28: installeerbare app
   if ("serviceWorker" in navigator) {
     window.addEventListener("load", () => navigator.serviceWorker.register("./sw.js").catch(() => {}));
   }
