@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<!-- fix-26 -->
+<!-- fix-27 -->
 <title>Mijn Tuin — Plantenregister</title>
 <meta name="theme-color" content="#2C4A3B">
 <link rel="manifest" href="manifest.webmanifest">
@@ -317,6 +317,9 @@
   .soil-chip{padding:5px 10px;border-radius:999px;border:1px solid var(--line);background:white;color:var(--soil);font-size:0.76rem;font-weight:600;}
   .soil-chip:active{transform:none;}
   .soil-chip.on{background:var(--soil);border-color:var(--soil);color:var(--paper);}
+  /* Demo (fix-27) */
+  .demo-banner{display:flex;gap:10px;align-items:center;justify-content:space-between;flex-wrap:wrap;background:#F3E2B4;color:var(--ink);font-size:0.8rem;line-height:1.4;padding:9px 16px;border-bottom:1px solid #E1C77E;}
+  .demo-banner a{color:var(--moss);font-weight:700;white-space:nowrap;}
   .cal-hint{background:#FBF4E2;border:1px solid #E8D4A0;border-radius:10px;padding:10px 12px;font-size:0.82rem;line-height:1.45;margin-bottom:14px;display:none;}
   .cal-hint button{margin-top:8px;padding:6px 12px;font-size:0.78rem;}
   .cal-advice .note{font-size:0.74rem;color:#8a8a78;margin-top:4px;}
@@ -501,11 +504,17 @@
     <button class="tab-btn" data-tab="kalender" role="tab"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M3 10h18M8 3v4M16 3v4"/></svg>Kalender</button>
   </nav>
 </header>
+<div class="demo-banner" id="demoBanner" style="display:none;">
+  <span>🌱 <b>Demo</b> met een fictieve tuin. Wat je wijzigt wordt niet bewaard en verdwijnt als je de pagina vernieuwt.</span>
+  <a href="./" id="demoExitLink">Demo verlaten</a>
+</div>
 
 <div id="signedOutView">
   <h2 class="display">Welkom in je tuinregister</h2>
   <p>Log in om je plantvakken te bekijken en planten te registreren. Iedereen die inlogt deelt dezelfde tuin-data.</p>
   <button class="btn-primary" id="signInBtn">Inloggen met Google</button>
+  <p style="margin-top:22px;border-top:1px solid var(--line);padding-top:16px;">Eerst rondkijken? Bekijk zonder inloggen een voorbeeldtuin met fictieve planten.</p>
+  <button class="btn-outline" id="demoBtn">Bekijk de demo</button>
 </div>
 
 <main id="mainView">
@@ -824,12 +833,13 @@
   </div>
 </div>
 
-<footer class="app-version mono">versie fix-26</footer>
+<footer class="app-version mono">versie fix-27</footer>
 
 <div class="toast" id="toast"></div>
 
 <!-- Firebase SDK -->
 <script type="module">
+  // fix-27: demomodus met een fictieve tuin, los van Firebase (opslag in het geheugen)
   // fix-26: grondsoort kiezen met knopjes; velden in Groeiplek en Plant onder elkaar
   // fix-25: plantvenster met tabbladen Plant, Locatie en Verzorging
   // fix-24: foto van de plant in het uitgeklapte kaartje in de kalender
@@ -858,10 +868,107 @@
   import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
   import { getAuth, GoogleAuthProvider, signInWithPopup, signOut, onAuthStateChanged }
     from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
-  import { getFirestore, collection, doc, addDoc, updateDoc, deleteDoc, onSnapshot, setDoc }
+  import { getFirestore, collection as fsCollection, doc as fsDoc, addDoc as fsAddDoc, updateDoc as fsUpdateDoc,
+    deleteDoc as fsDeleteDoc, onSnapshot as fsOnSnapshot, setDoc as fsSetDoc }
     from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
   import { firebaseConfig } from "./firebase-config.js";
+
+
+  // ---------- Opslag (fix-27) ----------
+  // All reads and writes go through these seven functions. Normally they are Firebase's;
+  // in the demo (?demo in the address) they work on a fictitious garden held in memory,
+  // so nothing a visitor does reaches the real database. A local database can later plug in here too.
+  const DEMO = new URLSearchParams(location.search).has("demo");
+  const DEMO_DATA = {
+    garden: { dimVoortuinW: 6, dimVoortuinD: 4, dimAchtertuinW: 8, dimAchtertuinD: 12 },
+    plants: [
+      { id: "demo01", name: "Hortensia", latin: "Hydrangea arborescens", variety: "Annabelle, wit", category: "Struik", zone: "voortuin", vak: "A1", plantedDate: "2021-04-17",
+        bloomStart: 5, bloomEnd: 8, pruneMonths: [2], fertilizeMonths: [3, 5], soil: "humusrijk, vochtig", sun: "Halfschaduw",
+        pruningAdvice: "In maart alle takken terugsnoeien tot 20 à 30 cm; bloeit op nieuw hout.", fertilizing: "In april en juni organische mest of koemestkorrels.", locationNote: "Naast de voordeur" },
+      { id: "demo02", name: "Lavendel", latin: "Lavandula angustifolia", variety: "Hidcote, donkerpaars", category: "Sierplant", zone: "voortuin", vak: "B1", plantedDate: "2022-05-02",
+        bloomStart: 5, bloomEnd: 7, pruneMonths: [3, 7], fertilizeMonths: [], soil: "Zand, droog, kalkrijk", sun: "Volle zon",
+        pruningAdvice: "Na de bloei de uitgebloeide stelen wegknippen; in april licht in vorm snoeien, niet in het oude hout.", fertilizing: "Bemesten is niet nodig." },
+      { id: "demo03", name: "Vlinderstruik", latin: "Buddleja davidii", variety: "paars", category: "Struik", zone: "voortuin", vak: "C2",
+        bloomStart: 6, bloomEnd: 8, pruneMonths: [2], fertilizeMonths: [3], soil: "doorlatend", sun: "Volle zon",
+        pruningAdvice: "In maart terugsnoeien tot 30 à 50 cm boven de grond.", fertilizing: "In april wat compost rond de voet." },
+      { id: "demo04", name: "Lampenpoetsersgras", latin: "Pennisetum alopecuroides", variety: "Hameln", category: "Gras", zone: "voortuin", vak: "A2",
+        bloomStart: 7, bloomEnd: 9, pruneMonths: [2], fertilizeMonths: [4], soil: "doorlatend, humusrijk", sun: "Volle zon",
+        pruningAdvice: "Laat de pluimen in de winter staan; in maart kort afknippen tot 10 cm.", fertilizing: "In mei een handje compost." },
+      { id: "demo05", name: "Tulp", latin: "Tulipa", variety: "Queen of Night, zwartpaars", category: "Bolgewas", zone: "voortuin", vak: "B2", lockBloom: true,
+        bloomStart: 3, bloomEnd: 4, pruneMonths: [5], fertilizeMonths: [2], soil: "Zand, doorlatend", sun: "Volle zon",
+        pruningAdvice: "Uitgebloeide bloemen verwijderen; het blad pas wegknippen als het geel is.", fertilizing: "In maart bollenmest strooien." },
+      { id: "demo06", name: "Schoenlappersplant", latin: "Bergenia cordifolia", variety: "roze", category: "Sierplant", zone: "voortuin", vak: "C1",
+        bloomStart: 2, bloomEnd: 4, pruneMonths: [2], fertilizeMonths: [3], soil: "humusrijk", sun: "Halfschaduw",
+        pruningAdvice: "In maart bruine en beschadigde bladeren weghalen.", fertilizing: "In april wat compost." },
+      { id: "demo07", name: "Japanse esdoorn", latin: "Acer palmatum", variety: "Bloodgood, rood blad", category: "Boom", zone: "achtertuin", vak: "A1", plantedDate: "2019-10-12",
+        bloomStart: null, bloomEnd: null, pruneMonths: [0], fertilizeMonths: [3], soil: "humusrijk, licht zuur", sun: "Halfschaduw",
+        pruningAdvice: "Alleen in januari dode en kruisende takken weghalen; niet snoeien als de sapstroom op gang is.", fertilizing: "In april een organische mest voor heesters." },
+      { id: "demo08", name: "Appelboom", latin: "Malus domestica", variety: "Elstar", category: "Voedselplant", zone: "achtertuin", vak: "D2", lockPruning: true,
+        bloomStart: 3, bloomEnd: 4, pruneMonths: [10, 1], fertilizeMonths: [2], soil: "voedzaam, Klei", sun: "Volle zon",
+        pruningAdvice: "Eigen advies: wintersnoei in november of februari; waterloten en naar binnen groeiende takken weg, kroon open houden.", fertilizing: "In maart compost en wat fruitmest rond de stam." },
+      { id: "demo09", name: "Tomaat", latin: "Solanum lycopersicum", variety: "Moneymaker", category: "Voedselplant", zone: "achtertuin", vak: "C5",
+        bloomStart: 5, bloomEnd: 8, pruneMonths: [5, 6, 7], fertilizeMonths: [5, 6, 7], soil: "voedzaam, humusrijk", sun: "Volle zon",
+        pruningAdvice: "Elke week de dieven tussen stengel en blad uitknijpen.", fertilizing: "Vanaf de eerste trosjes elke twee weken tomatenvoeding." },
+      { id: "demo10", name: "Courgette", latin: "Cucurbita pepo", variety: "groen", category: "Voedselplant", zone: "achtertuin", vak: "C6",
+        bloomStart: 5, bloomEnd: 8, pruneMonths: [], fertilizeMonths: [5, 6], soil: "voedzaam, vochtig", sun: "Volle zon",
+        pruningAdvice: "Snoeien is niet nodig; oude bladeren met meeldauw weghalen.", fertilizing: "In juni en juli elke twee weken vloeibare mest." },
+      { id: "demo11", name: "Rozemarijn", latin: "Salvia rosmarinus", category: "Kruid", zone: "achtertuin", vak: "B6",
+        bloomStart: 3, bloomEnd: 4, pruneMonths: [5], fertilizeMonths: [], soil: "Zand, droog", sun: "Volle zon",
+        pruningAdvice: "Na de bloei in juni licht terugknippen, niet in het kale hout.", fertilizing: "Bemesten is niet nodig." },
+      { id: "demo12", name: "Bieslook", latin: "Allium schoenoprasum", category: "Kruid", zone: "achtertuin", vak: "B6",
+        bloomStart: 4, bloomEnd: 5, pruneMonths: [6], fertilizeMonths: [3], soil: "humusrijk, vochtig", sun: "Halfschaduw",
+        pruningAdvice: "In juli helemaal terugknippen; daarna loopt hij opnieuw uit.", fertilizing: "In april wat compost." },
+      { id: "demo13", name: "Bosrank", latin: "Clematis montana", variety: "Rubens, roze", category: "Klimplant", zone: "achtertuin", vak: "A3",
+        bloomStart: 4, bloomEnd: 5, pruneMonths: [5], fertilizeMonths: [2], soil: "humusrijk, doorlatend", sun: "Halfschaduw",
+        pruningAdvice: "Direct na de bloei in juni licht snoeien om in toom te houden.", fertilizing: "In maart organische mest; de voet koel houden." },
+      { id: "demo14", name: "Rode bes", latin: "Ribes rubrum", variety: "Jonkheer van Tets", category: "Voedselplant", zone: "achtertuin", vak: "C3",
+        bloomStart: 3, bloomEnd: 3, pruneMonths: [10, 1, 6], fertilizeMonths: [2], soil: "humusrijk", sun: "Halfschaduw",
+        pruningAdvice: "In de winter (november tot februari) de oudste takken weg; in juli na de oogst de zijscheuten inkorten.", fertilizing: "In maart compost en wat kalium." },
+      { id: "demo15", name: "Kamperfoelie", latin: "Lonicera periclymenum", variety: "Serotina", category: "Klimplant", zone: "achtertuin", vak: "D1",
+        bloomStart: 5, bloomEnd: 8, pruneMonths: [2], fertilizeMonths: [3], soil: "humusrijk, vochtig", sun: "Halfschaduw",
+        pruningAdvice: "In maart uitdunnen en te lange ranken inkorten.", fertilizing: "In april organische mest." },
+      { id: "demo16", name: "Kerstroos", latin: "Helleborus niger", variety: "wit", category: "Sierplant", zone: "voortuin", vak: "C1",
+        bloomStart: 11, bloomEnd: 2, pruneMonths: [10], fertilizeMonths: [8], soil: "humusrijk, kalkrijk", sun: "Halfschaduw",
+        pruningAdvice: "In november het oude blad wegknippen, dan komen de bloemen goed in beeld.", fertilizing: "In september wat compost of beendermeel." },
+      { id: "demo17", name: "Winterjasmijn", latin: "Jasminum nudiflorum", variety: "geel", category: "Klimplant", zone: "achtertuin", vak: "A4",
+        bloomStart: 10, bloomEnd: 2, pruneMonths: [3], fertilizeMonths: [3], soil: "doorlatend", sun: "Halfschaduw",
+        pruningAdvice: "Direct na de bloei in april de uitgebloeide takken flink terugknippen.", fertilizing: "In april organische mest." },
+    ],
+  };
+  function createMemoryStore(seed) {
+    const clone = (o) => JSON.parse(JSON.stringify(o));
+    const data = { garden: clone(seed.garden), plants: {} };
+    seed.plants.forEach(({ id, ...rest }) => { data.plants[id] = clone(rest); });
+    const subs = { garden: [], plants: [] };
+    let n = 0;
+    const fire = (kind) => setTimeout(() => {
+      if (kind === "garden") subs.garden.forEach(cb => cb({ data: () => clone(data.garden) }));
+      else {
+        const docs = Object.entries(data.plants).map(([id, d]) => ({ id, data: () => clone(d) }));
+        subs.plants.forEach(cb => cb({ docs }));
+      }
+    }, 0);
+    return {
+      collection: () => ({ kind: "plants" }),
+      doc: (a, ...rest) => (a && a.kind === "plants") ? { kind: "plant", id: rest[0] } : { kind: "garden" },
+      onSnapshot(ref, cb) {
+        const kind = ref.kind === "plants" ? "plants" : "garden";
+        subs[kind].push(cb); fire(kind);
+        return () => { subs[kind] = subs[kind].filter(f => f !== cb); };
+      },
+      async setDoc(ref, d, opts) { data.garden = opts && opts.merge ? { ...data.garden, ...clone(d) } : clone(d); fire("garden"); },
+      async addDoc(col, d) { const id = "demo-nieuw-" + (++n); data.plants[id] = clone(d); fire("plants"); return { id }; },
+      async updateDoc(ref, d) {
+        if (!data.plants[ref.id]) throw new Error("plant niet gevonden");
+        Object.assign(data.plants[ref.id], clone(d)); fire("plants");
+      },
+      async deleteDoc(ref) { delete data.plants[ref.id]; fire("plants"); },
+    };
+  }
+  const store = DEMO ? createMemoryStore(DEMO_DATA)
+    : { collection: fsCollection, doc: fsDoc, addDoc: fsAddDoc, updateDoc: fsUpdateDoc, deleteDoc: fsDeleteDoc, onSnapshot: fsOnSnapshot, setDoc: fsSetDoc };
+  const { collection, doc, addDoc, updateDoc, deleteDoc, onSnapshot, setDoc } = store;
 
   const app = initializeApp(firebaseConfig);
   const auth = getAuth(app);
@@ -962,9 +1069,10 @@
 
   // ---------- Auth ----------
   $("signInBtn").onclick = () => signInWithPopup(auth, provider).catch(e => toast(e.message));
-  $("signOutBtn").onclick = () => signOut(auth);
+  $("signOutBtn").onclick = () => { if (DEMO) location.href = location.pathname; else signOut(auth); };
+  $("demoBtn").onclick = () => { location.href = location.pathname + "?demo"; };
 
-  onAuthStateChanged(auth, user => {
+  function setSignedIn(user) {
     const signedOut = $("signedOutView");
     const main = $("mainView");
     if (user) {
@@ -985,7 +1093,28 @@
       $("signOutBtn").style.display = "none";
       $("tabs").style.display = "none";
     }
-  });
+  }
+  if (DEMO) {
+    // Demo: no login, the fictitious garden opens straight away.
+    $("demoBanner").style.display = "flex";
+    $("signOutBtn").textContent = "Demo verlaten";
+    document.title = "Mijn Tuin — demo";
+    document.querySelector(".app-version").textContent += " \u00b7 demo";
+    setTimeout(() => { setSignedIn({ uid: "demo" }); loadDemoPhotos(); }, 0);
+  } else {
+    onAuthStateChanged(auth, setSignedIn);
+  }
+  // Example photos for the demo plants (from iNaturalist), filled in after the garden is shown.
+  async function loadDemoPhotos() {
+    for (const p of DEMO_DATA.plants) {
+      try {
+        const r = await fetch(`https://api.inaturalist.org/v1/taxa?q=${encodeURIComponent(p.latin)}&per_page=1&locale=nl`);
+        const t = ((await r.json()).results || [])[0];
+        const url = t && t.default_photo && (t.default_photo.medium_url || t.default_photo.url);
+        if (url && !plants.find(x => x.id === p.id)?.photo) await updateDoc(doc(plantsCol, p.id), { photo: url });
+      } catch {}
+    }
+  }
 
   // ---------- Toast ----------
   function toast(msg) {
@@ -2491,7 +2620,7 @@ Verzin niets: bij twijfel "gevonden": false.`;
   function placeholderThumb() { return "data:image/svg+xml;utf8," + encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" width="44" height="44"><rect width="44" height="44" fill="#F0EBDD"/><text x="22" y="27" font-size="20" text-anchor="middle">🌱</text></svg>'); }
 </script>
 <script>
-  // fix-26: installeerbare app
+  // fix-27: installeerbare app
   if ("serviceWorker" in navigator) {
     window.addEventListener("load", () => navigator.serviceWorker.register("./sw.js").catch(() => {}));
   }
