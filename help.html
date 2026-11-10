@@ -1,0 +1,167 @@
+<!DOCTYPE html>
+<!-- fix-29: helppagina voor Mijn Tuin -->
+<html lang="nl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,600&family=Public+Sans:wght@400;600&display=swap" rel="stylesheet">
+<title>Help – Mijn Tuin</title>
+<link rel="icon" type="image/svg+xml" href="icons/icon.svg">
+<style>
+  :root{ --moss:#2C4A3B; --leaf:#7A9B76; --soil:#5C4433; --paper:#FAF7F0; --paper-dim:#F0EBDD;
+         --ochre:#C99A2E; --ink:#22281F; --line:#DCD4BF; --muted:#6b6b5f; --danger:#A8462F; }
+  *{ box-sizing:border-box; }
+  html,body{ margin:0; background:var(--paper); color:var(--ink);
+    font-family:"Public Sans",-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Arial,sans-serif; line-height:1.55; font-size:16px; }
+  main{ max-width:720px; margin:0 auto; padding:16px 16px 40px; }
+  .top{ display:flex; align-items:center; justify-content:space-between; gap:12px; margin-bottom:8px; }
+  .back{ color:var(--moss); text-decoration:none; font-size:14px; font-weight:600; }
+  .brand{ display:flex; align-items:center; gap:8px; text-decoration:none; color:var(--ink); }
+  .brand img{ width:32px; height:32px; }
+  .brand span{ font-weight:500; font-size:18px; letter-spacing:.01em; }
+  h1,h2,h3{ font-family:Fraunces,Georgia,serif; color:var(--moss); }
+  h1{ font-size:28px; margin:14px 0 6px; }
+  h2{ font-size:19px; margin:28px 0 6px; padding-top:10px; border-top:1px solid var(--line); }
+  h3{ font-size:16px; margin:16px 0 4px; }
+  .lead,.muted{ color:var(--muted); }
+  ul,ol{ padding-left:22px; margin:6px 0; }
+  li{ margin:4px 0; }
+  .card{ background:#fff; border:1px solid var(--line); border-radius:12px; padding:12px 14px; margin:10px 0; }
+  .card.warn{ border-color:var(--ochre); background:#FBF5E6; }
+  nav.toc{ display:flex; flex-wrap:wrap; gap:8px; margin:12px 0 4px; }
+  nav.toc a{ background:var(--paper-dim); border:1px solid var(--line); color:var(--ink); text-decoration:none;
+    padding:6px 11px; border-radius:999px; font-size:13px; }
+  a{ color:var(--moss); }
+  b{ color:var(--ink); }
+  table{ border-collapse:collapse; width:100%; font-size:14px; margin:8px 0; }
+  th,td{ text-align:left; vertical-align:top; padding:8px 8px; border-bottom:1px solid var(--line); }
+  th{ color:var(--soil); font-size:13px; }
+  footer{ margin-top:34px; padding-top:14px; border-top:1px solid var(--line); display:flex; align-items:center;
+    justify-content:space-between; gap:12px; flex-wrap:wrap; font-size:13px; color:var(--muted); }
+  @media(max-width:520px){ table, thead, tbody, tr, th, td{ display:block; } thead{ display:none; }
+    tr{ border-bottom:1px solid var(--line); padding:6px 0; } td{ border:none; padding:2px 0; } td:first-child{ font-weight:600; } }
+</style>
+</head>
+<body>
+<main>
+  <div class="top">
+    <a class="back" id="backLink" href="./">&larr; Terug naar Mijn Tuin</a>
+    <a class="brand" href="https://bruindav.github.io/DigidaveStore/" target="_blank" rel="noopener" title="Naar het overzicht van al mijn apps">
+      <img src="icons/digidave-logo.png" alt="" width="32" height="32"><span>digidave</span>
+    </a>
+  </div>
+
+  <h1>Help</h1>
+  <p class="lead">Mijn Tuin is je tuinregister: je legt vast welke planten er staan en in welk plantvak, en de app laat per maand zien wat er bloeit en wat je moet snoeien of bemesten.</p>
+  <nav class="toc">
+    <a href="#start">Aan de slag</a><a href="#tuin">Tuin</a><a href="#planten">Planten</a><a href="#plant">Plant toevoegen</a>
+    <a href="#herkennen">Herkennen &amp; opzoeken</a><a href="#verzorging">Verzorging</a><a href="#kalender">Kalender</a>
+    <a href="#backup">Back-up</a><a href="#installeren">Installeren</a><a href="#problemen">Problemen</a>
+  </nav>
+
+  <h2 id="start">Aan de slag</h2>
+  <p>Op het startscherm kies je hoe je de app gebruikt:</p>
+  <table>
+    <thead><tr><th>Keuze</th><th>Waar staat je tuin?</th><th>Goed om te weten</th></tr></thead>
+    <tbody>
+      <tr><td>Bekijk de demo</td><td>Nergens. Alleen tijdelijk in het geheugen.</td><td>Een fictieve voorbeeldtuin om rond te kijken. Wat je wijzigt is weg als je de pagina vernieuwt of sluit. Met <b>Demo verlaten</b> ga je terug naar het startscherm.</td></tr>
+      <tr><td>Start op dit apparaat</td><td>In de browser op dit apparaat.</td><td>Geen account nodig. Je tuin blijft bewaard als je de app sluit, maar staat alleen op dit apparaat en in deze browser. Maak dus af en toe een <a href="#backup">back-up</a>.</td></tr>
+      <tr><td>Inloggen met Google</td><td>In de cloud (Google Firebase).</td><td>Bedoeld voor de eigenaar van de tuin. Op elk apparaat waar je inlogt zie je dezelfde tuin.</td></tr>
+    </tbody>
+  </table>
+  <p>Bovenaan staan drie tabbladen: <b>Tuin</b>, <b>Planten</b> en <b>Kalender</b>. Met het <b>+</b> bovenaan voeg je een plant toe. Via <b>Instellingen</b> stel je de afmetingen van je tuin in, maak je een back-up en vul je de sleutels voor de herkennings- en AI-diensten in.</p>
+  <p>Wil je terug naar het startscherm, bijvoorbeeld om van manier te wisselen? Gebruik <b>Startscherm</b> (op dit apparaat) of <b>Uitloggen</b> (met account). Je tuin op het apparaat blijft daarbij gewoon bewaard.</p>
+
+  <h2 id="tuin">Tuin: plantvakken</h2>
+  <ul>
+    <li>De voortuin en achtertuin zijn verdeeld in <b>plantvakken van 2 &times; 2 m</b>, met namen als A1, B3. Stel de breedte en diepte in bij <b>Instellingen</b>.</li>
+    <li>Tik een vak aan om te zien welke planten erin staan of om er een plant aan toe te voegen.</li>
+    <li><b>Sleep</b> een plant naar een ander vak om hem te verplaatsen.</li>
+    <li>Optioneel kun je een foto van je tuin als achtergrond onder de vakken leggen, als referentie.</li>
+    <li>Het <b>maandwiel</b> laat zien wat er in een maand bloeit en wat er gesnoeid moet worden. Tik een maand aan om te filteren.</li>
+  </ul>
+
+  <h2 id="planten">Planten: de lijst</h2>
+  <ul>
+    <li>Zoek op naam, kleur, soort of vak.</li>
+    <li>Sorteer op <b>Naam</b>, <b>Plantvak</b>, <b>Soort</b> (voedselplanten, grassen, sierplanten, struiken enz.), <b>Bloei</b> (wat nu bloeit bovenaan) of <b>Snoei</b> (wat nu gesnoeid moet worden bovenaan).</li>
+    <li>Het bloemetje en de snoeischaar bij een plant laten zien dat hij deze maand bloeit of gesnoeid moet worden.</li>
+    <li>Met <b>Verzorging ophalen voor alle planten</b> vul je in één keer het advies aan voor planten waar het nog ontbreekt.</li>
+  </ul>
+
+  <h2 id="plant">Plant toevoegen of bewerken</h2>
+  <p>Het plantvenster heeft drie tabbladen:</p>
+  <ul>
+    <li><b>Plant</b> &ndash; naam, Latijnse naam, variëteit of kleur, soort, plantdatum en een foto. Hier staan ook de knoppen om de plant te <a href="#herkennen">herkennen of op te zoeken</a>.</li>
+    <li><b>Locatie</b> &ndash; voortuin of achtertuin en het plantvak, dat je op het kaartje aanwijst, plus een notitie over de plek.</li>
+    <li><b>Verzorging</b> &ndash; snoeien, bemesten, bloei en groeiplek (grondsoort en zon). Maanden kies je met de knopjes.</li>
+  </ul>
+
+  <h2 id="herkennen">Herkennen en opzoeken</h2>
+  <h3>Herkennen op foto</h3>
+  <p>Kies een foto van de plant zelf en laat <b>Pl@ntNet</b> of <b>ObsIdentify</b> (Naturalis) raden welke plant het is. Bij elke suggestie zie je voorbeeldfoto's om te vergelijken. Pl@ntNet heeft een eigen gratis sleutel nodig (zie <a href="#sleutels">sleutels</a>); ObsIdentify werkt zonder sleutel, met een limiet van ongeveer tien herkenningen per dag.</p>
+  <h3>Opzoeken met AI</h3>
+  <p>Vinden die diensten de plant niet goed, typ dan de naam in of maak een foto van het <b>plantkaartje</b>. De AI (Google Gemini) leest eerst wat er op het kaartje staat en neemt dat over; alleen wat ontbreekt wordt aangevuld. Wat van het kaartje komt, wordt automatisch <a href="#vastzetten">vastgezet</a>.</p>
+  <h3>Via Claude</h3>
+  <p>Werkt Gemini niet (bijvoorbeeld door drukte bij Google), dan kun je de opdracht kopiëren en in een chat met Claude plakken, eventueel met de foto van het kaartje erbij. Plak het antwoord terug in de app en de velden worden ingevuld.</p>
+
+  <h2 id="verzorging">Verzorging</h2>
+  <ul>
+    <li>Met <b>Verzorging ophalen</b> zoekt Gemini het snoeiadvies, bemestingsadvies, de bloeiperiode en de gewenste grondsoort en standplaats op. Tijdens het ophalen zie je wat de app probeert; lukt een model niet, dan probeert hij automatisch een ander.</li>
+    <li id="vastzetten"><b>🔒 Niet overschrijven</b> &ndash; zet dit vinkje aan bij snoeien, bemesten of bloei als je je eigen advies wilt houden. Automatisch ophalen laat dat onderdeel dan met rust.</li>
+    <li>Het advies is een hulpmiddel, geen naslagwerk. Kijk ook naar het plantkaartje of vraag het bij de kweker na. Zie de <a href="privacy.html#disclaimer">disclaimer</a>.</li>
+  </ul>
+
+  <h2 id="kalender">Kalender</h2>
+  <p>De kalender begint bij de huidige maand en toont per maand wat je moet <b>snoeien</b>, wat <b>bemest</b> moet worden en wat er <b>bloeit</b>. Tik op een plant om het advies en de foto te zien. Ontbreekt er nog advies, dan zie je bovenaan een knop om het op te halen.</p>
+
+  <h2 id="backup">Back-up</h2>
+  <ul>
+    <li>Ga naar <b>Instellingen &rsaquo; Back-up</b> en kies <b>Exporteren</b>. Je krijgt een bestand (.json) met je hele tuin, inclusief foto's. Bewaar het op een veilige plek, bijvoorbeeld in je cloudopslag of mail het naar jezelf.</li>
+    <li>Met <b>Importeren</b> zet je zo'n bestand terug. Planten die al bestaan worden bijgewerkt, nieuwe worden toegevoegd. Er wordt niets verwijderd.</li>
+    <li>Zo verhuis je ook je tuin: exporteer op het oude apparaat (of uit je account) en importeer op het nieuwe.</li>
+    <li>Gebruik je de app op dit apparaat zonder account, dan herinnert de app je eraan als je langer dan 30 dagen geen back-up hebt gemaakt.</li>
+  </ul>
+  <div class="card warn"><b>Let op:</b> zonder account staat je tuin alleen in deze browser. Wis je de websitegegevens, verwijder je de browser of raak je het apparaat kwijt, dan is je tuin weg, tenzij je een back-up hebt.</div>
+
+  <h2 id="sleutels">Sleutels voor Pl@ntNet en Gemini</h2>
+  <p>Herkennen met Pl@ntNet en alles met AI werkt met je eigen gratis sleutel (API-key). Vul ze in bij <b>Instellingen &rsaquo; Koppelingen</b>.</p>
+  <ul>
+    <li><b>Pl@ntNet</b> &ndash; aan te vragen op <a href="https://my.plantnet.org/" target="_blank" rel="noopener">my.plantnet.org</a>.</li>
+    <li><b>Google Gemini</b> &ndash; aan te maken op <a href="https://aistudio.google.com/apikey" target="_blank" rel="noopener">aistudio.google.com/apikey</a>.</li>
+  </ul>
+  <p>De sleutels worden alleen in je browser op dit apparaat bewaard. Op een ander apparaat vul je ze opnieuw in.</p>
+
+  <h2 id="installeren">Installeren</h2>
+  <ul>
+    <li><b>Android (Chrome)</b> &ndash; open het menu &#8942; en kies <b>App installeren</b> of <b>Toevoegen aan startscherm</b>.</li>
+    <li><b>iPhone/iPad (Safari)</b> &ndash; tik op het deelicoon en kies <b>Zet op beginscherm</b>.</li>
+    <li>Op de computer (Chrome of Edge) staat een installeerknop in de adresbalk.</li>
+  </ul>
+  <p>Zonder account hoort je tuin bij de browser waarin je hem hebt gemaakt. Installeer de app dus vanuit dezelfde browser, of verhuis je tuin met een back-up.</p>
+
+  <h2 id="problemen">Problemen</h2>
+  <ul>
+    <li><b>Gemini geeft een fout (bijvoorbeeld 503 of &ldquo;high demand&rdquo;)</b> &ndash; Google heeft het druk. Probeer het later opnieuw, of gebruik <b>Via Claude</b>. De melding van Google wordt in de app getoond.</li>
+    <li><b>ObsIdentify werkt niet meer vandaag</b> &ndash; de gratis dagelijkse limiet is bereikt. Probeer Pl@ntNet of morgen opnieuw.</li>
+    <li><b>Mijn tuin is leeg</b> &ndash; controleer of je dezelfde manier gebruikt als eerst (op dit apparaat of met account) en dezelfde browser. Zet anders je laatste back-up terug.</li>
+    <li><b>De terugknop sluit de app niet</b> &ndash; dat is zo bedoeld: de eerste keer sluit hij een venster of gaat hij terug naar Tuin. Druk twee keer kort na elkaar om de app te verlaten.</li>
+  </ul>
+
+  <h2 id="contact">Vragen of ideeën</h2>
+  <p>Heb je een vraag, een idee of wil je een reactie achterlaten? Dat kan via het <a href="https://bruindav.github.io/DigidaveStore/" target="_blank" rel="noopener">overzicht van al mijn apps</a>, bij Mijn Tuin. Lees ook de <a href="privacy.html">privacyverklaring en disclaimer</a>.</p>
+
+  <footer>
+    <a class="brand" href="https://bruindav.github.io/DigidaveStore/" target="_blank" rel="noopener">
+      <img src="icons/digidave-logo.png" alt="" width="28" height="28"><span>digidave</span>
+    </a>
+    <span>Mijn Tuin &middot; <a href="help.html">Help</a> &middot; <a href="privacy.html">Privacy &amp; disclaimer</a></span>
+  </footer>
+</main>
+<script>
+  // In de app wordt deze pagina in een venster getoond; dan is de terug-link niet nodig.
+  if (window.self !== window.top) document.getElementById("backLink").style.display = "none";
+</script>
+</body>
+</html>

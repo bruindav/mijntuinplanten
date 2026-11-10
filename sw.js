@@ -1,12 +1,15 @@
-// fix-28
+// fix-29
 // Service worker voor Mijn Tuin: maakt de app installeerbaar.
 // Netwerk eerst, zodat een nieuwe versie direct zichtbaar is; de cache is alleen de terugval zonder verbinding.
-const CACHE = "mijntuin-fix-28";
+const CACHE = "mijntuin-fix-29";
 const SHELL = [
   "./",
   "./index.html",
   "./firebase-config.js",
   "./manifest.webmanifest",
+  "./help.html",
+  "./privacy.html",
+  "./icons/digidave-logo.png",
   "./icons/icon-192.png",
   "./icons/icon-512.png",
 ];

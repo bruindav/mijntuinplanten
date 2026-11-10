@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<!-- fix-28 -->
+<!-- fix-29 -->
 <title>Mijn Tuin — Plantenregister</title>
 <meta name="theme-color" content="#2C4A3B">
 <link rel="manifest" href="manifest.webmanifest">
@@ -320,6 +320,17 @@
   /* Demo (fix-27) */
   .demo-banner{display:flex;gap:10px;align-items:center;justify-content:space-between;flex-wrap:wrap;background:#F3E2B4;color:var(--ink);font-size:0.8rem;line-height:1.4;padding:9px 16px;border-bottom:1px solid #E1C77E;}
   .demo-banner a{color:var(--moss);font-weight:700;white-space:nowrap;}
+  /* Help en privacy (fix-29) */
+  .info-links{margin-top:14px;font-size:0.82rem;color:#8a8a78;}
+  .info-links button{background:none;border:none;padding:0;font:inherit;color:var(--moss);text-decoration:underline;cursor:pointer;}
+  .info-row{display:flex;gap:8px;flex-wrap:wrap;}
+  .info-row button{flex:1;min-width:130px;}
+  #infoView{display:none;position:fixed;inset:0;z-index:200;background:var(--paper);flex-direction:column;}
+  #infoView.active{display:flex;}
+  #infoView .info-bar{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:10px 14px;background:var(--moss);color:var(--paper);}
+  #infoView .info-bar h2{margin:0;font-size:1.05rem;color:var(--paper);}
+  #infoView .info-bar button{background:none;border:1px solid rgba(250,247,240,0.5);color:var(--paper);border-radius:8px;padding:6px 12px;font:inherit;font-size:0.85rem;cursor:pointer;}
+  #infoView iframe{flex:1;width:100%;border:0;background:var(--paper);}
   /* Startscherm en back-up (fix-28) */
   @media(max-width:460px){ #signedOutView{margin:24px 14px;padding:22px 18px;} }
   .start-option{border:1px solid var(--line);border-radius:12px;padding:14px;margin-top:14px;text-align:left;background:var(--paper);}
@@ -537,6 +548,7 @@
     <button class="btn-outline" id="signInBtn">Inloggen met Google</button>
   </div>
   <p style="margin-top:18px;">Eerst rondkijken? <button class="btn-link" id="demoBtn">Bekijk de demo</button> met een voorbeeldtuin.</p>
+  <p class="info-links"><button type="button" data-info="help">Help</button> &middot; <button type="button" data-info="privacy">Privacy &amp; disclaimer</button></p>
 </div>
 
 <main id="mainView">
@@ -855,6 +867,11 @@
       <input type="text" id="geminiKeyInput" placeholder="plak hier je key">
       <small>Aan te maken op aistudio.google.com/apikey. Wordt alleen lokaal in je browser bewaard.</small>
     </div>
+    <div class="section-label">Over de app</div>
+    <div class="info-row">
+      <button class="btn-outline" type="button" data-info="help">Help</button>
+      <button class="btn-outline" type="button" data-info="privacy">Privacy &amp; disclaimer</button>
+    </div>
     <div class="modal-actions">
       <div style="flex:1;"></div>
       <button class="btn-primary" id="saveSettingsBtn">Opslaan</button>
@@ -862,12 +879,19 @@
   </div>
 </div>
 
-<footer class="app-version mono">versie fix-28</footer>
+<!-- Help en privacy (fix-29) -->
+<div id="infoView" role="dialog" aria-modal="true" aria-labelledby="infoViewTitle">
+  <div class="info-bar"><h2 class="display" id="infoViewTitle">Help</h2><button type="button" id="infoViewClose">Sluiten</button></div>
+  <iframe id="infoViewFrame" title="Help"></iframe>
+</div>
+
+<footer class="app-version mono">versie fix-29</footer>
 
 <div class="toast" id="toast"></div>
 
 <!-- Firebase SDK -->
 <script type="module">
+  // fix-29: helppagina en privacyverklaring met disclaimer, te openen vanaf het startscherm en uit Instellingen
   // fix-28: gebruik zonder account met opslag op het apparaat (IndexedDB); back-up exporteren en importeren
   // fix-27: demomodus met een fictieve tuin, los van Firebase (opslag in het geheugen)
   // fix-26: grondsoort kiezen met knopjes; velden in Groeiplek en Plant onder elkaar
@@ -2676,7 +2700,7 @@ Verzin niets: bij twijfel "gevonden": false.`;
     } catch { return ""; }
   }
   function exportGarden() {
-    const payload = { app: "mijntuinplanten", versie: "fix-28", gemaakt: new Date().toISOString(), bron: MODE, garden: gardenData, plants: plants.map(p => ({ ...p })) };
+    const payload = { app: "mijntuinplanten", versie: "fix-29", gemaakt: new Date().toISOString(), bron: MODE, garden: gardenData, plants: plants.map(p => ({ ...p })) };
     const url = URL.createObjectURL(new Blob([JSON.stringify(payload, null, 1)], { type: "application/json" }));
     const a = document.createElement("a");
     a.href = url; a.download = `mijn-tuin-${today()}.json`;
@@ -2719,6 +2743,23 @@ Verzin niets: bij twijfel "gevonden": false.`;
       + await storageInfo();
   });
 
+  // ---------- Help en privacy (fix-29) ----------
+  // Shown in a full-screen window over the app, so the garden (and a demo in progress) stays as it is.
+  const INFO_PAGES = { help: ["Help", "help.html"], privacy: ["Privacy & disclaimer", "privacy.html"] };
+  function openInfoView(which) {
+    const [title, src] = INFO_PAGES[which];
+    $("infoViewTitle").textContent = title;
+    $("infoViewFrame").title = title;
+    $("infoViewFrame").src = src;
+    $("infoView").classList.add("active");
+  }
+  function closeInfoView() {
+    $("infoView").classList.remove("active");
+    $("infoViewFrame").removeAttribute("src");
+  }
+  document.querySelectorAll("[data-info]").forEach(b => b.addEventListener("click", () => openInfoView(b.dataset.info)));
+  $("infoViewClose").addEventListener("click", closeInfoView);
+
   // ---------- Terugknop ----------
   // One extra history entry sits "in front of" the app. Pressing back removes it, which we notice:
   // an open window is closed, otherwise a hint is shown. Only a second press shortly after leaves the app.
@@ -2729,6 +2770,7 @@ Verzin niets: bij twijfel "gevonden": false.`;
   }
   function closeTopWindow() {
     const open = (id) => $(id).classList.contains("active");
+    if (open("infoView")) { closeInfoView(); return true; }
     if (open("lightbox")) { closeLightbox(); return true; }
     if (open("careModalBackdrop")) { closeCareModal(); return true; }
     if (open("vakModalBackdrop")) { closeVakModal(); return true; }
